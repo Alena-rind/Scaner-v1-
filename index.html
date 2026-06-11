@@ -8,17 +8,11 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <title>Сканер товаров</title>
 
-  <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-
-  <!-- html5-qrcode -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-
-  <!-- Tesseract.js OCR -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js"></script>
 
   <style>
-    /* ── Tokens ── */
     :root {
       --bg: #0f1117;
       --surface: #1c1f2e;
@@ -50,7 +44,6 @@
       overscroll-behavior: none;
     }
 
-    /* ── Layout ── */
     #app { display: flex; flex-direction: column; min-height: 100dvh; }
 
     .top-bar {
@@ -60,7 +53,9 @@
       border-bottom: 1px solid var(--border);
       position: sticky; top: 0; z-index: 100;
     }
+
     .top-bar h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: .02em; }
+
     .top-bar .user-chip {
       display: flex; align-items: center; gap: 8px;
       background: var(--card); border-radius: 99px;
@@ -68,12 +63,19 @@
       font-size: .8rem; color: var(--muted);
       max-width: 180px; overflow: hidden;
     }
-    .top-bar .user-chip img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
-    .top-bar .user-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    .content { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+    .top-bar .user-chip img {
+      width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
+    }
 
-    /* ── Cards ── */
+    .top-bar .user-chip span {
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    .content {
+      flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 14px;
+    }
+
     .card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -81,17 +83,18 @@
       padding: 18px;
       box-shadow: var(--shadow);
     }
+
     .card-title {
       font-size: .75rem; font-weight: 700; text-transform: uppercase;
       letter-spacing: .1em; color: var(--muted); margin-bottom: 14px;
       display: flex; align-items: center; gap: 7px;
     }
+
     .card-title .dot {
       width: 8px; height: 8px; border-radius: 50%;
       background: var(--accent); display: inline-block;
     }
 
-    /* ── Buttons ── */
     .btn {
       display: flex; align-items: center; justify-content: center; gap: 9px;
       width: 100%; min-height: 54px;
@@ -100,6 +103,7 @@
       transition: opacity .15s, transform .1s;
       -webkit-tap-highlight-color: transparent;
     }
+
     .btn:active { opacity: .75; transform: scale(.97); }
     .btn:disabled { opacity: .4; cursor: not-allowed; transform: none !important; }
 
@@ -115,11 +119,16 @@
       border-radius: var(--radius-sm);
       min-height: 54px;
     }
+
     .btn-google img { width: 22px; height: 22px; }
 
-    /* ── Inputs ── */
     .field { margin-bottom: 12px; }
-    .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 5px; font-weight: 600; }
+
+    .field label {
+      display: block; font-size: .8rem; color: var(--muted);
+      margin-bottom: 5px; font-weight: 600;
+    }
+
     .field input, .field textarea {
       width: 100%; background: var(--surface);
       border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -127,20 +136,26 @@
       padding: 12px 14px; outline: none;
       transition: border-color .15s;
     }
+
     .field input:focus, .field textarea:focus { border-color: var(--accent); }
+
     .field textarea { min-height: 80px; resize: vertical; }
+
     .field input::placeholder, .field textarea::placeholder { color: var(--muted); }
 
-    /* ── QR Scanner ── */
     #qr-reader {
-      width: 100%; border-radius: var(--radius-sm);
-      overflow: hidden; background: #000;
+      width: 100%;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: #000;
       display: none;
     }
+
     #qr-reader video { width: 100%; display: block; }
-    /* hide html5-qrcode default UI clutter */
+
     #qr-reader__dashboard_section_csr button { display: none !important; }
     #qr-reader__status_span { display: none !important; }
+
     #qr-reader select {
       background: var(--surface); color: var(--text);
       border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -153,30 +168,38 @@
       border-radius: var(--radius-sm); padding: 12px 14px;
       margin-top: 10px;
     }
-    .barcode-result .icon { font-size: 1.4rem; }
-    .barcode-result .val { font-size: 1.1rem; font-weight: 700; color: var(--success); flex: 1; word-break: break-all; }
 
-    /* ── Photo & OCR ── */
+    .barcode-result .icon { font-size: 1.4rem; }
+
+    .barcode-result .val {
+      font-size: 1.1rem; font-weight: 700; color: var(--success);
+      flex: 1; word-break: break-all;
+    }
+
     #photo-preview {
       width: 100%; border-radius: var(--radius-sm);
       display: none; margin-bottom: 10px;
       max-height: 240px; object-fit: contain;
       background: #000;
     }
+
     .ocr-overlay {
       position: relative;
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius-sm); padding: 10px;
       margin-top: 6px;
     }
+
     .ocr-progress {
       display: none; font-size: .85rem; color: var(--muted);
       text-align: center; padding: 10px 0;
     }
+
     .ocr-progress .bar {
       height: 4px; background: var(--border); border-radius: 99px;
       margin: 8px 0; overflow: hidden;
     }
+
     .ocr-progress .bar-fill {
       height: 100%; background: var(--accent2);
       border-radius: 99px;
@@ -184,9 +207,9 @@
       width: 0%;
     }
 
-    /* ── Status / Toast ── */
     #toast {
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(100px);
       background: var(--card); border: 1px solid var(--border);
       border-radius: 99px; padding: 12px 22px;
       font-size: .9rem; font-weight: 600;
@@ -195,29 +218,27 @@
       z-index: 999; white-space: nowrap;
       pointer-events: none;
     }
+
     #toast.show { transform: translateX(-50%) translateY(0); }
     #toast.ok { border-color: var(--success); color: var(--success); }
     #toast.err { border-color: var(--danger); color: var(--danger); }
     #toast.inf { border-color: var(--accent); color: var(--accent); }
 
-    /* ── Login screen ── */
     #login-screen {
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       min-height: 100dvh; gap: 20px; padding: 32px 24px;
       background: var(--bg);
     }
+
     .login-logo { font-size: 3rem; margin-bottom: 8px; }
     .login-title { font-size: 1.6rem; font-weight: 800; text-align: center; }
     .login-sub { color: var(--muted); text-align: center; font-size: .95rem; max-width: 300px; }
     #login-screen .card { width: 100%; max-width: 360px; }
 
-    /* ── Sections ── */
     .hidden { display: none !important; }
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .section-sep { height: 1px; background: var(--border); margin: 2px 0; }
 
-    /* ── Sending overlay ── */
     #sending-overlay {
       position: fixed; inset: 0;
       background: rgba(0,0,0,.7);
@@ -225,6 +246,7 @@
       align-items: center; justify-content: center;
       gap: 16px; z-index: 9999;
     }
+
     #sending-overlay .spinner {
       width: 48px; height: 48px;
       border: 4px solid var(--border);
@@ -232,472 +254,7 @@
       border-radius: 50%;
       animation: spin .8s linear infinite;
     }
+
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Config warning ── */
-    .config-warn {
-      background: #2e1a00; border: 1px solid var(--warn);
-      border-radius: var(--radius-sm); padding: 12px 14px;
-      font-size: .85rem; color: var(--warn); margin-bottom: 12px;
-    }
-  </style>
-</head>
-<body>
-
-<!-- ════════════════════════════════════
-     ⚙️  НАСТРОЙКИ — ЗАМЕНИТЕ ЗДЕСЬ
-     ════════════════════════════════════ -->
-<script>
-  // 1) Google OAuth Client ID из Google Cloud Console
-  const GOOGLE_CLIENT_ID = "147988593400-75qo13gh77ikliq5vumdp8k2li2cb8gn.apps.googleusercontent.com";
-
-  // 2) URL вашего задеплоенного Google Apps Script Web App
-  const APPS_SCRIPT_URL  = "https://script.google.com/macros/s/AKfycbwmDq3XZBDyMmuDn1bCjPcTzCAJ2aLAbURkuKnQ-9_9FySHixyB6CXVnFRHkU3FyHiBuQ/exec";
-
-  // Проверяем, заполнены ли настройки
-  const CONFIG_OK = !GOOGLE_CLIENT_ID.includes("ВСТАВЬТЕ") && !APPS_SCRIPT_URL.includes("ВСТАВЬТЕ");
-</script>
-<!-- ════════════════════════════════════ -->
-
-<div id="app">
-
-  <!-- ── LOGIN SCREEN ── -->
-  <div id="login-screen">
-    <div class="login-logo">📦</div>
-    <div class="login-title">Сканер товаров</div>
-    <div class="login-sub">Сканируйте штрихкоды, делайте фото и отправляйте данные в Google Sheets</div>
-
-    <div class="card" id="login-card">
-      <div id="config-warning" class="config-warn hidden">
-        ⚠️ Сначала заполните GOOGLE_CLIENT_ID и APPS_SCRIPT_URL в коде (см. раздел ⚙️ НАСТРОЙКИ)
-      </div>
-      <button class="btn btn-google" id="google-signin-btn" onclick="signIn()">
-        <img src="https://developers.google.com/identity/images/g-logo.png" alt="G">
-        Войти через Google
-      </button>
-      <p style="font-size:.78rem;color:var(--muted);margin-top:12px;text-align:center;">
-        Ваш email будет сохранён в таблице для идентификации записей
-      </p>
-    </div>
-  </div>
-
-  <!-- ── MAIN APP ── -->
-  <div id="main-app" class="hidden">
-    <div class="top-bar">
-      <h1>📦 Сканер</h1>
-      <div class="user-chip">
-        <img id="user-avatar" src="" alt="" />
-        <span id="user-email-chip"></span>
-      </div>
-    </div>
-
-    <div class="content">
-
-      <!-- Предупреждение о настройках -->
-      <div id="main-config-warn" class="config-warn hidden">
-        ⚠️ Apps Script URL не настроен — отправка в таблицу недоступна
-      </div>
-
-      <!-- ─── BARCODE ─── -->
-      <div class="card">
-        <div class="card-title"><span class="dot" style="background:var(--accent)"></span>Штрихкод</div>
-
-        <div id="qr-reader"></div>
-
-        <div class="two-col" style="margin-bottom:10px;">
-          <button class="btn btn-primary" id="btn-scan-start" onclick="startScan()">
-            📷 Сканировать
-          </button>
-          <button class="btn btn-secondary" id="btn-scan-stop" onclick="stopScan()" style="display:none;">
-            ⏹ Стоп
-          </button>
-          <button class="btn btn-secondary btn-sm" onclick="manualBarcode()" style="grid-column:2">
-            ✏️ Вручную
-          </button>
-        </div>
-
-        <div id="barcode-result" class="barcode-result hidden">
-          <span class="icon">✅</span>
-          <span class="val" id="barcode-val">—</span>
-          <button onclick="clearBarcode()" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;">✕</button>
-        </div>
-      </div>
-
-      <!-- ─── PHOTO + OCR ─── -->
-      <div class="card">
-        <div class="card-title"><span class="dot" style="background:var(--accent2)"></span>Фото и распознавание текста</div>
-
-        <img id="photo-preview" alt="Предпросмотр фото" />
-
-        <div class="two-col" style="margin-bottom:10px;">
-          <button class="btn btn-primary" onclick="takePhoto()">📸 Фото</button>
-          <button class="btn btn-secondary" onclick="uploadPhoto()">🖼 Галерея</button>
-        </div>
-        <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoFile(event)">
-        <input type="file" id="gallery-input" accept="image/*" style="display:none" onchange="handlePhotoFile(event)">
-
-        <div class="ocr-progress" id="ocr-progress">
-          <div>Распознаю текст… <span id="ocr-pct">0%</span></div>
-          <div class="bar"><div class="bar-fill" id="ocr-bar"></div></div>
-        </div>
-
-        <div class="ocr-overlay" id="ocr-box" style="display:none;">
-          <div class="field" style="margin-bottom:0">
-            <label>Распознанный текст (можно редактировать)</label>
-            <textarea id="ocr-text" placeholder="Текст появится здесь после распознавания..."></textarea>
-          </div>
-        </div>
-      </div>
-
-      <!-- ─── FORM ─── -->
-      <div class="card">
-        <div class="card-title"><span class="dot" style="background:var(--success)"></span>Данные записи</div>
-
-        <div class="field">
-          <label>Кто сканировал</label>
-          <input type="text" id="field-scanner" placeholder="Введите имя или должность">
-        </div>
-        <div class="two-col">
-          <div class="field">
-            <label>Цена</label>
-            <input type="number" id="field-price" placeholder="0.00" inputmode="decimal" step="0.01">
-          </div>
-          <div class="field">
-            <label>Количество</label>
-            <input type="number" id="field-qty" placeholder="1" inputmode="numeric" min="1" value="1">
-          </div>
-        </div>
-        <div class="field">
-          <label>Комментарий</label>
-          <textarea id="field-comment" placeholder="Необязательно..."></textarea>
-        </div>
-      </div>
-
-      <!-- ─── SEND ─── -->
-      <button class="btn btn-success" onclick="sendToSheets()">
-        📤 Отправить в Google Sheets
-      </button>
-
-      <button class="btn btn-secondary btn-sm" onclick="clearAll()">
-        🗑 Очистить форму
-      </button>
-
-      <div style="height:24px;"></div>
-    </div><!-- /content -->
-  </div><!-- /main-app -->
-
-</div><!-- /app -->
-
-<!-- Sending overlay -->
-<div id="sending-overlay" class="hidden">
-  <div class="spinner"></div>
-  <div style="color:var(--text);font-weight:600;">Отправка данных…</div>
-</div>
-
-<!-- Toast -->
-<div id="toast"></div>
-
-<script>
-// ══════════════════════════════════════════════════════════
-//  STATE
-// ══════════════════════════════════════════════════════════
-let userEmail    = "";
-let userName     = "";
-let userPicture  = "";
-let barcodeValue = "";
-let photoDataUrl = "";
-let html5QrCode  = null;
-let scanning     = false;
-
-// ══════════════════════════════════════════════════════════
-//  INIT
-// ══════════════════════════════════════════════════════════
-window.addEventListener("DOMContentLoaded", () => {
-  if (!CONFIG_OK) {
-    document.getElementById("config-warning").classList.remove("hidden");
-  }
-
-  // Восстановить сессию из localStorage
-  const saved = localStorage.getItem("scanner_user");
-  if (saved) {
-    const u = JSON.parse(saved);
-    loginUser(u.email, u.name, u.picture);
-  }
-});
-
-// ══════════════════════════════════════════════════════════
-//  AUTH
-// ══════════════════════════════════════════════════════════
-function signIn() {
-  if (!CONFIG_OK) {
-    toast("Сначала заполните настройки в коде!", "err");
-    return;
-  }
-  if (!window.google) {
-    toast("Google SDK ещё загружается, подождите...", "inf");
-    return;
-  }
-  google.accounts.id.initialize({
-    client_id: GOOGLE_CLIENT_ID,
-    callback: handleGoogleCallback,
-    use_fedcm_for_prompt: true
-  });
-  google.accounts.id.prompt((notification) => {
-    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-      // Fallback: renderButton
-      renderGoogleButton();
-    }
-  });
-}
-
-function renderGoogleButton() {
-  const btn = document.getElementById("google-signin-btn");
-  btn.style.display = "none";
-  const wrap = document.createElement("div");
-  wrap.id = "g_id_onload";
-  google.accounts.id.renderButton(wrap, {
-    theme: "outline", size: "large", width: "100%", text: "signin_with"
-  });
-  btn.parentNode.insertBefore(wrap, btn.nextSibling);
-}
-
-function handleGoogleCallback(response) {
-  // Decode JWT без библиотеки
-  const parts = response.credential.split(".");
-  const payload = JSON.parse(atob(parts[1].replace(/-/g,"+").replace(/_/g,"/")));
-  loginUser(payload.email, payload.name, payload.picture);
-  localStorage.setItem("scanner_user", JSON.stringify({
-    email: payload.email, name: payload.name, picture: payload.picture
-  }));
-}
-
-function loginUser(email, name, picture) {
-  userEmail   = email;
-  userName    = name;
-  userPicture = picture;
-
-  document.getElementById("login-screen").classList.add("hidden");
-  document.getElementById("main-app").classList.remove("hidden");
-  document.getElementById("user-email-chip").textContent = email;
-  document.getElementById("user-avatar").src = picture || "";
-  document.getElementById("field-scanner").value = name || "";
-
-  if (!CONFIG_OK) {
-    document.getElementById("main-config-warn").classList.remove("hidden");
-  }
-  toast("Добро пожаловать, " + (name || email) + "!", "ok");
-}
-
-// ══════════════════════════════════════════════════════════
-//  BARCODE
-// ══════════════════════════════════════════════════════════
-async function startScan() {
-  document.getElementById("qr-reader").style.display = "block";
-  document.getElementById("btn-scan-start").style.display = "none";
-  document.getElementById("btn-scan-stop").style.display = "block";
-  scanning = true;
-
-  html5QrCode = new Html5Qrcode("qr-reader");
-
-  try {
-    const cameras = await Html5Qrcode.getCameras();
-    // Предпочитаем заднюю камеру
-    const cam = cameras.find(c => /back|rear|env/i.test(c.label)) || cameras[cameras.length - 1];
-    await html5QrCode.start(
-      cam ? cam.id : { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 240, height: 140 }, aspectRatio: 1.5 },
-      (decodedText) => {
-        setBarcodeValue(decodedText);
-        stopScan();
-        vibrate();
-      },
-      () => {}
-    );
-  } catch (e) {
-    // Fallback: facingMode
-    try {
-      await html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 240, height: 140 } },
-        (decodedText) => { setBarcodeValue(decodedText); stopScan(); vibrate(); },
-        () => {}
-      );
-    } catch (e2) {
-      toast("Камера недоступна: " + e2, "err");
-      stopScan();
-    }
-  }
-}
-
-async function stopScan() {
-  scanning = false;
-  document.getElementById("btn-scan-start").style.display = "block";
-  document.getElementById("btn-scan-stop").style.display = "none";
-  if (html5QrCode) {
-    try { await html5QrCode.stop(); } catch(_) {}
-    html5QrCode = null;
-  }
-  document.getElementById("qr-reader").style.display = "none";
-}
-
-function setBarcodeValue(val) {
-  barcodeValue = val;
-  document.getElementById("barcode-val").textContent = val;
-  document.getElementById("barcode-result").classList.remove("hidden");
-}
-
-function clearBarcode() {
-  barcodeValue = "";
-  document.getElementById("barcode-result").classList.add("hidden");
-}
-
-function manualBarcode() {
-  const val = prompt("Введите штрихкод вручную:");
-  if (val && val.trim()) setBarcodeValue(val.trim());
-}
-
-// ══════════════════════════════════════════════════════════
-//  PHOTO + OCR
-// ══════════════════════════════════════════════════════════
-function takePhoto() {
-  document.getElementById("photo-input").click();
-}
-function uploadPhoto() {
-  document.getElementById("gallery-input").click();
-}
-
-function handlePhotoFile(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    photoDataUrl = e.target.result;
-    const img = document.getElementById("photo-preview");
-    img.src = photoDataUrl;
-    img.style.display = "block";
-    runOCR(photoDataUrl);
-  };
-  reader.readAsDataURL(file);
-  event.target.value = ""; // reset so same file can be re-selected
-}
-
-async function runOCR(dataUrl) {
-  const progress = document.getElementById("ocr-progress");
-  const bar      = document.getElementById("ocr-bar");
-  const pct      = document.getElementById("ocr-pct");
-  const box      = document.getElementById("ocr-box");
-  const area     = document.getElementById("ocr-text");
-
-  progress.style.display = "block";
-  box.style.display = "none";
-  area.value = "";
-
-  try {
-    const worker = await Tesseract.createWorker("rus+eng", 1, {
-      logger: (m) => {
-        if (m.status === "recognizing text") {
-          const p = Math.round((m.progress || 0) * 100);
-          bar.style.width = p + "%";
-          pct.textContent = p + "%";
-        }
-      }
-    });
-
-    const result = await worker.recognize(dataUrl);
-    await worker.terminate();
-
-    progress.style.display = "none";
-    area.value = result.data.text.trim();
-    box.style.display = "block";
-
-    if (result.data.text.trim()) {
-      toast("Текст распознан ✓", "ok");
-    } else {
-      toast("Текст не найден на фото", "inf");
-    }
-  } catch (e) {
-    progress.style.display = "none";
-    box.style.display = "block";
-    toast("Ошибка OCR: " + e.message, "err");
-  }
-}
-
-// ══════════════════════════════════════════════════════════
-//  SEND TO SHEETS
-// ══════════════════════════════════════════════════════════
-async function sendToSheets() {
-  if (!CONFIG_OK || APPS_SCRIPT_URL.includes("ВСТАВЬТЕ")) {
-    toast("Настройте APPS_SCRIPT_URL в коде!", "err");
-    return;
-  }
-  if (!userEmail) { toast("Сначала войдите через Google", "err"); return; }
-
-  const overlay = document.getElementById("sending-overlay");
-  overlay.classList.remove("hidden");
-
-  const now = new Date();
-  const datetime = now.toLocaleString("ru-RU", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-    hour: "2-digit", minute: "2-digit", second: "2-digit"
-  });
-
-  const payload = {
-    datetime:  datetime,
-    email:     userEmail,
-    scanner:   document.getElementById("field-scanner").value || userName,
-    barcode:   barcodeValue,
-    price:     document.getElementById("field-price").value,
-    qty:       document.getElementById("field-qty").value,
-    ocrText:   document.getElementById("ocr-text").value,
-    comment:   document.getElementById("field-comment").value
-  };
-
-  try {
-    const resp = await fetch(APPS_SCRIPT_URL, {
-      method:  "POST",
-      mode:    "no-cors",    // Apps Script требует no-cors
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(payload)
-    });
-    overlay.classList.add("hidden");
-    toast("Данные отправлены в таблицу ✓", "ok");
-    vibrate([100, 50, 100]);
-  } catch (e) {
-    overlay.classList.add("hidden");
-    toast("Ошибка отправки: " + e.message, "err");
-  }
-}
-
-// ══════════════════════════════════════════════════════════
-//  UTILS
-// ══════════════════════════════════════════════════════════
-function clearAll() {
-  if (!confirm("Очистить всю форму?")) return;
-  clearBarcode();
-  barcodeValue = "";
-  photoDataUrl = "";
-  document.getElementById("photo-preview").style.display = "none";
-  document.getElementById("photo-preview").src = "";
-  document.getElementById("ocr-box").style.display = "none";
-  document.getElementById("ocr-text").value = "";
-  document.getElementById("field-price").value = "";
-  document.getElementById("field-qty").value = "1";
-  document.getElementById("field-comment").value = "";
-  toast("Форма очищена", "inf");
-}
-
-let toastTimer = null;
-function toast(msg, type = "inf") {
-  const el = document.getElementById("toast");
-  el.textContent = msg;
-  el.className = "show " + type;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.className = ""; }, 3000);
-}
-
-function vibrate(pattern = [60]) {
-  if (navigator.vibrate) navigator.vibrate(pattern);
-}
-</script>
-</body>
-</html>
+    .config-warn 
