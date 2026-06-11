@@ -5,36 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <title>Сканер товаров</title>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Сканер</title>
 
-  <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-
-  <!-- html5-qrcode -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-
-  <!-- Tesseract.js OCR -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js"></script>
 
   <style>
-    /* ── Tokens ── */
+    /* ── Apple Design Tokens ── */
     :root {
-      --bg: #0f1117;
-      --surface: #1c1f2e;
-      --card: #252840;
-      --accent: #5b8af5;
-      --accent2: #a78bfa;
-      --success: #34d399;
-      --warn: #fbbf24;
-      --danger: #f87171;
-      --text: #e8eaf6;
-      --muted: #7c85b3;
-      --border: #313557;
-      --radius: 16px;
-      --radius-sm: 10px;
-      --shadow: 0 4px 24px rgba(0,0,0,.45);
-      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      --bg:          #f2f2f7;
+      --bg2:         #ffffff;
+      --grouped:     #f2f2f7;
+      --fill:        rgba(120,120,128,.12);
+      --fill2:       rgba(120,120,128,.08);
+      --separator:   rgba(60,60,67,.18);
+      --label:       #000000;
+      --label2:      rgba(60,60,67,.6);
+      --label3:      rgba(60,60,67,.3);
+      --blue:        #007aff;
+      --green:       #34c759;
+      --red:         #ff3b30;
+      --orange:      #ff9500;
+      --indigo:      #5856d6;
+      --radius-card: 12px;
+      --radius-btn:  14px;
+      --radius-sm:   10px;
+      --font:        -apple-system, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+      --shadow-card: 0 1px 0 rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -42,411 +41,485 @@
     html, body {
       height: 100%;
       background: var(--bg);
-      color: var(--text);
+      color: var(--label);
       font-family: var(--font);
-      font-size: 16px;
-      line-height: 1.5;
+      font-size: 17px;
+      line-height: 1.47;
       -webkit-font-smoothing: antialiased;
       overscroll-behavior: none;
     }
 
-    /* ── Layout ── */
     #app { display: flex; flex-direction: column; min-height: 100dvh; }
 
-    .top-bar {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 18px 10px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
+    /* ── Navigation Bar ── */
+    .nav-bar {
       position: sticky; top: 0; z-index: 100;
+      background: rgba(242,242,247,.85);
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--separator);
+      padding: env(safe-area-inset-top, 0px) 16px 0;
     }
-    .top-bar h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: .02em; }
-    .top-bar .user-chip {
+    .nav-bar-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 44px;
+    }
+    .nav-title {
+      font-size: 17px; font-weight: 600; letter-spacing: -.02em;
+    }
+    .nav-user {
       display: flex; align-items: center; gap: 8px;
-      background: var(--card); border-radius: 99px;
-      padding: 6px 12px 6px 6px;
-      font-size: .8rem; color: var(--muted);
-      max-width: 180px; overflow: hidden;
     }
-    .top-bar .user-chip img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
-    .top-bar .user-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-    .content { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
-
-    /* ── Cards ── */
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px;
-      box-shadow: var(--shadow);
+    .nav-user img {
+      width: 30px; height: 30px; border-radius: 50%;
+      object-fit: cover; border: 1.5px solid var(--separator);
     }
-    .card-title {
-      font-size: .75rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .1em; color: var(--muted); margin-bottom: 14px;
-      display: flex; align-items: center; gap: 7px;
-    }
-    .card-title .dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--accent); display: inline-block;
+    .nav-user-email {
+      font-size: 13px; color: var(--label2);
+      max-width: 140px; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
     }
 
-    /* ── Buttons ── */
+    /* ── Scrollable content ── */
+    .content {
+      flex: 1;
+      padding: 20px 16px;
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+
+    /* ── Section groups (iOS Settings style) ── */
+    .section-header {
+      font-size: 13px; font-weight: 400;
+      color: var(--label2);
+      text-transform: uppercase; letter-spacing: .04em;
+      padding: 0 4px; margin-bottom: 6px; margin-top: 14px;
+    }
+    .section-header:first-child { margin-top: 0; }
+
+    .group {
+      background: var(--bg2);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+
+    .row {
+      display: flex; align-items: center;
+      padding: 13px 16px; gap: 12px;
+      position: relative;
+    }
+    .row + .row::before {
+      content: '';
+      position: absolute; top: 0; left: 16px; right: 0;
+      height: 1px; background: var(--separator);
+    }
+    .row-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px; flex-shrink: 0;
+    }
+    .row-body { flex: 1; min-width: 0; }
+    .row-label { font-size: 17px; font-weight: 400; }
+    .row-sub { font-size: 13px; color: var(--label2); margin-top: 1px; }
+    .row-value {
+      font-size: 17px; color: var(--label2);
+      max-width: 140px; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+    }
+    .row-chevron {
+      color: var(--label3); font-size: 13px; font-weight: 600;
+    }
+
+    /* ── Action Buttons ── */
     .btn {
-      display: flex; align-items: center; justify-content: center; gap: 9px;
-      width: 100%; min-height: 54px;
-      border: none; border-radius: var(--radius-sm);
-      font-size: 1rem; font-weight: 600; cursor: pointer;
-      transition: opacity .15s, transform .1s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; min-height: 50px;
+      border: none; border-radius: var(--radius-btn);
+      font-size: 17px; font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: opacity .15s;
       -webkit-tap-highlight-color: transparent;
     }
-    .btn:active { opacity: .75; transform: scale(.97); }
-    .btn:disabled { opacity: .4; cursor: not-allowed; transform: none !important; }
+    .btn:active { opacity: .6; }
+    .btn:disabled { opacity: .35; cursor: not-allowed; }
 
-    .btn-primary { background: var(--accent); color: #fff; }
-    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
-    .btn-success { background: var(--success); color: #0a2e22; }
-    .btn-danger { background: var(--danger); color: #2e0a0a; }
-    .btn-sm { min-height: 42px; font-size: .9rem; }
+    .btn-blue   { background: var(--blue);   color: #fff; }
+    .btn-green  { background: var(--green);  color: #fff; }
+    .btn-red    { background: var(--red);    color: #fff; }
+    .btn-fill   { background: var(--fill);   color: var(--blue); }
+    .btn-white  { background: var(--bg2);    color: var(--blue); box-shadow: var(--shadow-card); }
 
     .btn-google {
-      background: #fff; color: #3c4043;
-      font-size: 1rem; font-weight: 600;
-      border-radius: var(--radius-sm);
-      min-height: 54px;
+      background: var(--bg2); color: var(--label);
+      border-radius: var(--radius-btn);
+      min-height: 50px; box-shadow: var(--shadow-card);
+      font-size: 17px; font-weight: 500;
     }
-    .btn-google img { width: 22px; height: 22px; }
+    .btn-google img { width: 20px; height: 20px; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
     /* ── Inputs ── */
-    .field { margin-bottom: 12px; }
-    .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 5px; font-weight: 600; }
-    .field input, .field textarea {
-      width: 100%; background: var(--surface);
-      border: 1px solid var(--border); border-radius: var(--radius-sm);
-      color: var(--text); font-size: 1rem; font-family: var(--font);
-      padding: 12px 14px; outline: none;
-      transition: border-color .15s;
+    .field { margin-bottom: 0; }
+    .field label {
+      display: block; font-size: 12px; font-weight: 500;
+      color: var(--label2); margin-bottom: 4px;
+      text-transform: uppercase; letter-spacing: .04em;
+      padding: 0 2px;
     }
-    .field input:focus, .field textarea:focus { border-color: var(--accent); }
-    .field textarea { min-height: 80px; resize: vertical; }
-    .field input::placeholder, .field textarea::placeholder { color: var(--muted); }
+    .field input, .field textarea {
+      width: 100%; background: var(--bg2);
+      border: 1px solid var(--separator);
+      border-radius: var(--radius-sm);
+      color: var(--label); font-size: 17px;
+      font-family: var(--font);
+      padding: 11px 14px; outline: none;
+      transition: border-color .15s;
+      -webkit-appearance: none;
+    }
+    .field input:focus, .field textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(0,122,255,.12);
+    }
+    .field textarea { min-height: 80px; resize: none; }
+    .field input::placeholder, .field textarea::placeholder { color: var(--label3); }
+
+    /* ── inline field inside group row ── */
+    .row-input {
+      flex: 1; background: none; border: none; outline: none;
+      font-size: 17px; font-family: var(--font);
+      color: var(--label); text-align: right;
+      min-width: 0;
+    }
+    .row-input::placeholder { color: var(--label3); }
 
     /* ── QR Scanner ── */
     #qr-reader {
       width: 100%; border-radius: var(--radius-sm);
       overflow: hidden; background: #000;
-      display: none;
+      display: none; margin-bottom: 10px;
     }
     #qr-reader video { width: 100%; display: block; }
-    /* hide html5-qrcode default UI clutter */
     #qr-reader__dashboard_section_csr button { display: none !important; }
     #qr-reader__status_span { display: none !important; }
     #qr-reader select {
-      background: var(--surface); color: var(--text);
-      border: 1px solid var(--border); border-radius: var(--radius-sm);
-      padding: 6px 10px; margin: 8px 0; width: 100%;
+      background: var(--bg2); color: var(--label);
+      border: 1px solid var(--separator); border-radius: var(--radius-sm);
+      padding: 8px 12px; margin: 8px 0; width: 100%;
+      font-size: 15px; font-family: var(--font);
     }
 
-    .barcode-result {
+    /* ── Barcode result ── */
+    .barcode-pill {
       display: flex; align-items: center; gap: 10px;
-      background: var(--surface); border: 1px solid var(--success);
-      border-radius: var(--radius-sm); padding: 12px 14px;
-      margin-top: 10px;
+      background: rgba(52,199,89,.1);
+      border: 1px solid rgba(52,199,89,.3);
+      border-radius: var(--radius-sm);
+      padding: 11px 14px; margin-bottom: 10px;
     }
-    .barcode-result .icon { font-size: 1.4rem; }
-    .barcode-result .val { font-size: 1.1rem; font-weight: 700; color: var(--success); flex: 1; word-break: break-all; }
+    .barcode-pill .bp-val {
+      flex: 1; font-size: 16px; font-weight: 600;
+      color: var(--green); word-break: break-all;
+    }
+    .barcode-pill .bp-clear {
+      background: none; border: none; cursor: pointer;
+      color: var(--label3); font-size: 18px; padding: 0 2px;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-    /* ── Photo & OCR ── */
+    /* ── Photo ── */
     #photo-preview {
       width: 100%; border-radius: var(--radius-sm);
       display: none; margin-bottom: 10px;
-      max-height: 240px; object-fit: contain;
+      max-height: 220px; object-fit: contain;
       background: #000;
     }
-    .ocr-overlay {
-      position: relative;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); padding: 10px;
-      margin-top: 6px;
-    }
+
+    /* ── OCR progress ── */
     .ocr-progress {
-      display: none; font-size: .85rem; color: var(--muted);
-      text-align: center; padding: 10px 0;
+      display: none; text-align: center;
+      padding: 14px 0; font-size: 15px; color: var(--label2);
     }
-    .ocr-progress .bar {
-      height: 4px; background: var(--border); border-radius: 99px;
-      margin: 8px 0; overflow: hidden;
+    .ocr-progress .prog-bar {
+      height: 3px; background: var(--separator);
+      border-radius: 99px; margin: 10px 0; overflow: hidden;
     }
-    .ocr-progress .bar-fill {
-      height: 100%; background: var(--accent2);
-      border-radius: 99px;
-      transition: width .3s;
-      width: 0%;
+    .ocr-progress .prog-fill {
+      height: 100%; background: var(--blue);
+      border-radius: 99px; transition: width .3s; width: 0%;
     }
 
-    /* ── Status / Toast ── */
-    #toast {
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 99px; padding: 12px 22px;
-      font-size: .9rem; font-weight: 600;
-      box-shadow: var(--shadow);
-      transition: transform .3s cubic-bezier(.34,1.56,.64,1);
-      z-index: 999; white-space: nowrap;
-      pointer-events: none;
-    }
-    #toast.show { transform: translateX(-50%) translateY(0); }
-    #toast.ok { border-color: var(--success); color: var(--success); }
-    #toast.err { border-color: var(--danger); color: var(--danger); }
-    #toast.inf { border-color: var(--accent); color: var(--accent); }
-
-    /* ── Login screen ── */
+    /* ── Login ── */
     #login-screen {
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      min-height: 100dvh; gap: 20px; padding: 32px 24px;
+      min-height: 100dvh; gap: 0; padding: 48px 24px;
       background: var(--bg);
     }
-    .login-logo { font-size: 3rem; margin-bottom: 8px; }
-    .login-title { font-size: 1.6rem; font-weight: 800; text-align: center; }
-    .login-sub { color: var(--muted); text-align: center; font-size: .95rem; max-width: 300px; }
-    #login-screen .card { width: 100%; max-width: 360px; }
+    .login-icon {
+      width: 80px; height: 80px; border-radius: 20px;
+      background: var(--blue);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 38px; margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(0,122,255,.3);
+    }
+    .login-title {
+      font-size: 28px; font-weight: 700;
+      letter-spacing: -.04em; text-align: center;
+      margin-bottom: 8px;
+    }
+    .login-sub {
+      font-size: 16px; color: var(--label2);
+      text-align: center; max-width: 280px;
+      margin-bottom: 40px; line-height: 1.4;
+    }
+    .login-card {
+      width: 100%; max-width: 360px;
+      background: var(--bg2); border-radius: var(--radius-card);
+      padding: 20px; box-shadow: var(--shadow-card);
+    }
+    .login-hint {
+      font-size: 13px; color: var(--label2);
+      text-align: center; margin-top: 14px; line-height: 1.4;
+    }
 
-    /* ── Sections ── */
-    .hidden { display: none !important; }
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .section-sep { height: 1px; background: var(--border); margin: 2px 0; }
+    /* ── Config warning ── */
+    .config-warn {
+      background: rgba(255,149,0,.1);
+      border: 1px solid rgba(255,149,0,.3);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px; font-size: 14px;
+      color: #b36200; margin-bottom: 14px; line-height: 1.4;
+    }
 
     /* ── Sending overlay ── */
     #sending-overlay {
       position: fixed; inset: 0;
-      background: rgba(0,0,0,.7);
+      background: rgba(0,0,0,.45);
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       gap: 16px; z-index: 9999;
     }
-    #sending-overlay .spinner {
-      width: 48px; height: 48px;
-      border: 4px solid var(--border);
-      border-top-color: var(--accent);
+    .sending-card {
+      background: var(--bg2); border-radius: 18px;
+      padding: 32px 40px;
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2);
+    }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--separator);
+      border-top-color: var(--blue);
       border-radius: 50%;
-      animation: spin .8s linear infinite;
+      animation: spin .7s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .sending-label { font-size: 15px; color: var(--label2); font-weight: 500; }
 
-    /* ── Config warning ── */
-    .config-warn {
-      background: #2e1a00; border: 1px solid var(--warn);
-      border-radius: var(--radius-sm); padding: 12px 14px;
-      font-size: .85rem; color: var(--warn); margin-bottom: 12px;
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: calc(env(safe-area-inset-bottom,0px) + 24px);
+      left: 50%; transform: translateX(-50%) translateY(80px);
+      background: rgba(50,50,50,.92);
+      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(16px);
+      color: #fff;
+      border-radius: 99px; padding: 11px 22px;
+      font-size: 15px; font-weight: 500;
+      box-shadow: 0 4px 20px rgba(0,0,0,.25);
+      transition: transform .35s cubic-bezier(.34,1.4,.64,1);
+      z-index: 9998; white-space: nowrap; pointer-events: none;
     }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    #toast.ok   { background: rgba(52,199,89,.92); }
+    #toast.err  { background: rgba(255,59,48,.92); }
+    #toast.inf  { background: rgba(0,122,255,.92); }
+
+    /* ── Utility ── */
+    .hidden { display: none !important; }
+    .gap-8 { display: flex; flex-direction: column; gap: 8px; }
+    .gap-10 { display: flex; flex-direction: column; gap: 10px; }
+
+    /* ── Divider between cards ── */
+    .spacer { height: 8px; }
   </style>
 </head>
 <body>
 
-<!-- ════════════════════════════════════
-     ⚙️  НАСТРОЙКИ — ЗАМЕНИТЕ ЗДЕСЬ
-     ════════════════════════════════════ -->
 <script>
-  // 1) Google OAuth Client ID из Google Cloud Console
   const GOOGLE_CLIENT_ID = "147988593400-75qo13gh77ikliq5vumdp8k2li2cb8gn.apps.googleusercontent.com";
-
-  // 2) URL вашего задеплоенного Google Apps Script Web App
   const APPS_SCRIPT_URL  = "https://script.google.com/macros/s/AKfycbwWJtwlYXJoOnF6rCFe2qoryNN77IzgysRLEMdXEoTFZX3v7QVnyuZyDGZgT-Gyf9jU/exec";
-
-  // Проверяем, заполнены ли настройки
   const CONFIG_OK = !GOOGLE_CLIENT_ID.includes("ВСТАВЬТЕ") && !APPS_SCRIPT_URL.includes("ВСТАВЬТЕ");
 </script>
-<!-- ════════════════════════════════════ -->
 
 <div id="app">
 
-  <!-- ── LOGIN SCREEN ── -->
+  <!-- ══ LOGIN ══ -->
   <div id="login-screen">
-    <div class="login-logo">📦</div>
+    <div class="login-icon">📦</div>
     <div class="login-title">Сканер товаров</div>
-    <div class="login-sub">Сканируйте штрихкоды, делайте фото и отправляйте данные в Google Sheets</div>
+    <div class="login-sub">Штрихкоды, фото и OCR прямо в браузере</div>
 
-    <div class="card" id="login-card">
+    <div class="login-card">
       <div id="config-warning" class="config-warn hidden">
-        ⚠️ Сначала заполните GOOGLE_CLIENT_ID и APPS_SCRIPT_URL в коде (см. раздел ⚙️ НАСТРОЙКИ)
+        ⚠️ Заполните GOOGLE_CLIENT_ID и APPS_SCRIPT_URL в коде
       </div>
       <button class="btn btn-google" id="google-signin-btn" onclick="signIn()">
         <img src="https://developers.google.com/identity/images/g-logo.png" alt="G">
         Войти через Google
       </button>
-      <p style="font-size:.78rem;color:var(--muted);margin-top:12px;text-align:center;">
-        Ваш email будет сохранён в таблице для идентификации записей
-      </p>
+      <p class="login-hint">Ваш email сохраняется в таблице для идентификации записей</p>
     </div>
   </div>
 
-  <!-- ── MAIN APP ── -->
+  <!-- ══ MAIN ══ -->
   <div id="main-app" class="hidden">
-    <div class="top-bar">
-      <h1>📦 Сканер</h1>
-      <div class="user-chip">
-        <img id="user-avatar" src="" alt="" />
-        <span id="user-email-chip"></span>
+
+    <div class="nav-bar">
+      <div class="nav-bar-inner">
+        <div class="nav-title">Сканер</div>
+        <div class="nav-user">
+          <img id="user-avatar" src="" alt="" />
+          <span class="nav-user-email" id="user-email-chip"></span>
+        </div>
       </div>
     </div>
 
     <div class="content">
 
-      <!-- Предупреждение о настройках -->
       <div id="main-config-warn" class="config-warn hidden">
-        ⚠️ Apps Script URL не настроен — отправка в таблицу недоступна
+        ⚠️ Apps Script URL не настроен — отправка недоступна
       </div>
 
-      <!-- ─── BARCODE ─── -->
-      <div class="card">
-        <div class="card-title"><span class="dot" style="background:var(--accent)"></span>Штрихкод</div>
+      <!-- ─── ШТРИХКОД ─── -->
+      <div class="section-header">Штрихкод</div>
 
-        <div id="qr-reader"></div>
+      <div id="qr-reader"></div>
 
-        <div class="two-col" style="margin-bottom:10px;">
-          <button class="btn btn-primary" id="btn-scan-start" onclick="startScan()">
-            📷 Сканировать
-          </button>
-          <button class="btn btn-secondary" id="btn-scan-stop" onclick="stopScan()" style="display:none;">
-            ⏹ Стоп
-          </button>
-          <button class="btn btn-secondary btn-sm" onclick="manualBarcode()" style="grid-column:2">
-            ✏️ Вручную
-          </button>
-        </div>
-
-        <div id="barcode-result" class="barcode-result hidden">
-          <span class="icon">✅</span>
-          <span class="val" id="barcode-val">—</span>
-          <button onclick="clearBarcode()" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;">✕</button>
-        </div>
+      <div class="barcode-pill hidden" id="barcode-result">
+        <span style="font-size:18px;">✓</span>
+        <span class="bp-val" id="barcode-val"></span>
+        <button class="bp-clear" onclick="clearBarcode()">✕</button>
       </div>
 
-      <!-- ─── PHOTO + OCR ─── -->
-      <div class="card">
-        <div class="card-title"><span class="dot" style="background:var(--accent2)"></span>Фото и распознавание текста</div>
-
-        <img id="photo-preview" alt="Предпросмотр фото" />
-
-        <div class="two-col" style="margin-bottom:10px;">
-          <button class="btn btn-primary" onclick="takePhoto()">📸 Фото</button>
-          <button class="btn btn-secondary" onclick="uploadPhoto()">🖼 Галерея</button>
-        </div>
-        <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoFile(event)">
-        <input type="file" id="gallery-input" accept="image/*" style="display:none" onchange="handlePhotoFile(event)">
-
-        <div class="ocr-progress" id="ocr-progress">
-          <div>Распознаю текст… <span id="ocr-pct">0%</span></div>
-          <div class="bar"><div class="bar-fill" id="ocr-bar"></div></div>
-        </div>
-
-        <div class="ocr-overlay" id="ocr-box" style="display:none;">
-          <div class="field" style="margin-bottom:0">
-            <label>Распознанный текст (можно редактировать)</label>
-            <textarea id="ocr-text" placeholder="Текст появится здесь после распознавания..."></textarea>
-          </div>
-        </div>
+      <div class="two-col">
+        <button class="btn btn-blue" id="btn-scan-start" onclick="startScan()">
+          <span>📷</span> Сканировать
+        </button>
+        <button class="btn btn-fill" id="btn-scan-stop" onclick="stopScan()" style="display:none;">
+          <span>⏹</span> Стоп
+        </button>
+        <button class="btn btn-white" onclick="manualBarcode()" style="grid-column: 2; display:none;" id="btn-manual">
+          ✏️ Вручную
+        </button>
       </div>
-
-      <!-- ─── FORM ─── -->
-      <div class="card">
-        <div class="card-title"><span class="dot" style="background:var(--success)"></span>Данные записи</div>
-
-        <div class="field">
-          <label>Кто сканировал</label>
-          <input type="text" id="field-scanner" placeholder="Введите имя или должность">
-        </div>
-        <div class="two-col">
-          <div class="field">
-            <label>Цена</label>
-            <input type="number" id="field-price" placeholder="0.00" inputmode="decimal" step="0.01">
-          </div>
-          <div class="field">
-            <label>Количество</label>
-            <input type="number" id="field-qty" placeholder="1" inputmode="numeric" min="1" value="1">
-          </div>
-        </div>
-        <div class="field">
-          <label>Комментарий</label>
-          <textarea id="field-comment" placeholder="Необязательно..."></textarea>
-        </div>
-      </div>
-
-      <!-- ─── SEND ─── -->
-      <button class="btn btn-success" onclick="sendToSheets()">
-        📤 Отправить в Google Sheets
+      <button class="btn btn-white" onclick="manualBarcode()" id="btn-manual2" style="margin-top:2px;">
+        ✏️ Ввести вручную
       </button>
 
-      <button class="btn btn-secondary btn-sm" onclick="clearAll()">
-        🗑 Очистить форму
+      <!-- ─── ФОТО + OCR ─── -->
+      <div class="section-header" style="margin-top:20px;">Фото и распознавание текста</div>
+
+      <img id="photo-preview" alt="Фото" />
+
+      <div class="two-col">
+        <button class="btn btn-blue" onclick="takePhoto()">📸 Фото</button>
+        <button class="btn btn-white" onclick="uploadPhoto()">🖼 Галерея</button>
+      </div>
+      <input type="file" id="photo-input"   accept="image/*" capture="environment" style="display:none" onchange="handlePhotoFile(event)">
+      <input type="file" id="gallery-input" accept="image/*" style="display:none" onchange="handlePhotoFile(event)">
+
+      <div class="ocr-progress" id="ocr-progress">
+        <div>Распознаю текст… <span id="ocr-pct">0%</span></div>
+        <div class="prog-bar"><div class="prog-fill" id="ocr-bar"></div></div>
+      </div>
+
+      <div id="ocr-box" style="display:none;">
+        <div class="field">
+          <label>Распознанный текст</label>
+          <textarea id="ocr-text" placeholder="Текст с фото появится здесь…"></textarea>
+        </div>
+      </div>
+
+      <!-- ─── ДАННЫЕ ─── -->
+      <div class="section-header" style="margin-top:20px;">Данные записи</div>
+
+      <div class="group">
+        <div class="row">
+          <div class="row-icon" style="background:rgba(0,122,255,.12);">👤</div>
+          <div class="row-body"><div class="row-label">Кто сканировал</div></div>
+          <input class="row-input" id="field-scanner" type="text" placeholder="Имя">
+        </div>
+        <div class="row">
+          <div class="row-icon" style="background:rgba(52,199,89,.12);">💰</div>
+          <div class="row-body"><div class="row-label">Цена</div></div>
+          <input class="row-input" id="field-price" type="number" placeholder="0.00" inputmode="decimal" step="0.01">
+        </div>
+        <div class="row">
+          <div class="row-icon" style="background:rgba(255,149,0,.12);">📦</div>
+          <div class="row-body"><div class="row-label">Количество</div></div>
+          <input class="row-input" id="field-qty" type="number" placeholder="1" inputmode="numeric" min="1" value="1">
+        </div>
+        <div class="row" style="align-items:flex-start; padding-top:14px; padding-bottom:14px;">
+          <div class="row-icon" style="background:rgba(88,86,214,.12); margin-top:2px;">💬</div>
+          <div class="row-body">
+            <div class="row-label" style="margin-bottom:6px;">Комментарий</div>
+            <textarea id="field-comment" placeholder="Необязательно…"
+              style="width:100%;background:none;border:none;outline:none;font-size:16px;font-family:var(--font);color:var(--label);resize:none;min-height:60px;padding:0;"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── ОТПРАВИТЬ ─── -->
+      <div class="spacer"></div>
+      <button class="btn btn-green" onclick="sendToSheets()">
+        Отправить в Google Sheets
+      </button>
+      <button class="btn btn-fill" onclick="clearAll()" style="color:var(--red); background:rgba(255,59,48,.08); margin-top:4px;">
+        Очистить форму
       </button>
 
-      <div style="height:24px;"></div>
-    </div><!-- /content -->
-  </div><!-- /main-app -->
+      <div style="height:16px;"></div>
+    </div>
+  </div>
 
-</div><!-- /app -->
-
-<!-- Sending overlay -->
-<div id="sending-overlay" class="hidden">
-  <div class="spinner"></div>
-  <div style="color:var(--text);font-weight:600;">Отправка данных…</div>
 </div>
 
-<!-- Toast -->
+<!-- Overlay -->
+<div id="sending-overlay" class="hidden">
+  <div class="sending-card">
+    <div class="spinner"></div>
+    <div class="sending-label">Отправка данных…</div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
-// ══════════════════════════════════════════════════════════
-//  STATE
-// ══════════════════════════════════════════════════════════
-let userEmail    = "";
-let userName     = "";
-let userPicture  = "";
-let barcodeValue = "";
-let photoDataUrl = "";
-let html5QrCode  = null;
-let scanning     = false;
+let userEmail = "", userName = "", userPicture = "";
+let barcodeValue = "", photoDataUrl = "";
+let html5QrCode = null, scanning = false;
 
-// ══════════════════════════════════════════════════════════
-//  INIT
-// ══════════════════════════════════════════════════════════
 window.addEventListener("DOMContentLoaded", () => {
-  if (!CONFIG_OK) {
-    document.getElementById("config-warning").classList.remove("hidden");
-  }
-
-  // Восстановить сессию из localStorage
+  if (!CONFIG_OK) document.getElementById("config-warning").classList.remove("hidden");
   const saved = localStorage.getItem("scanner_user");
-  if (saved) {
-    const u = JSON.parse(saved);
-    loginUser(u.email, u.name, u.picture);
-  }
+  if (saved) { const u = JSON.parse(saved); loginUser(u.email, u.name, u.picture); }
 });
 
-// ══════════════════════════════════════════════════════════
-//  AUTH
-// ══════════════════════════════════════════════════════════
 function signIn() {
-  if (!CONFIG_OK) {
-    toast("Сначала заполните настройки в коде!", "err");
-    return;
-  }
-  if (!window.google) {
-    toast("Google SDK ещё загружается, подождите...", "inf");
-    return;
-  }
+  if (!CONFIG_OK) { toast("Сначала заполните настройки!", "err"); return; }
+  if (!window.google) { toast("Google SDK загружается…", "inf"); return; }
   google.accounts.id.initialize({
     client_id: GOOGLE_CLIENT_ID,
     callback: handleGoogleCallback,
     use_fedcm_for_prompt: true
   });
-  google.accounts.id.prompt((notification) => {
-    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-      // Fallback: renderButton
-      renderGoogleButton();
-    }
+  google.accounts.id.prompt((n) => {
+    if (n.isNotDisplayed() || n.isSkippedMoment()) renderGoogleButton();
   });
 }
 
@@ -454,78 +527,50 @@ function renderGoogleButton() {
   const btn = document.getElementById("google-signin-btn");
   btn.style.display = "none";
   const wrap = document.createElement("div");
-  wrap.id = "g_id_onload";
-  google.accounts.id.renderButton(wrap, {
-    theme: "outline", size: "large", width: "100%", text: "signin_with"
-  });
+  google.accounts.id.renderButton(wrap, { theme: "outline", size: "large", width: "320" });
   btn.parentNode.insertBefore(wrap, btn.nextSibling);
 }
 
 function handleGoogleCallback(response) {
-  // Decode JWT без библиотеки
   const parts = response.credential.split(".");
-  const payload = JSON.parse(atob(parts[1].replace(/-/g,"+").replace(/_/g,"/")));
-  loginUser(payload.email, payload.name, payload.picture);
-  localStorage.setItem("scanner_user", JSON.stringify({
-    email: payload.email, name: payload.name, picture: payload.picture
-  }));
+  const p = JSON.parse(atob(parts[1].replace(/-/g,"+").replace(/_/g,"/")));
+  loginUser(p.email, p.name, p.picture);
+  localStorage.setItem("scanner_user", JSON.stringify({ email: p.email, name: p.name, picture: p.picture }));
 }
 
 function loginUser(email, name, picture) {
-  userEmail   = email;
-  userName    = name;
-  userPicture = picture;
-
+  userEmail = email; userName = name; userPicture = picture;
   document.getElementById("login-screen").classList.add("hidden");
   document.getElementById("main-app").classList.remove("hidden");
   document.getElementById("user-email-chip").textContent = email;
   document.getElementById("user-avatar").src = picture || "";
   document.getElementById("field-scanner").value = name || "";
-
-  if (!CONFIG_OK) {
-    document.getElementById("main-config-warn").classList.remove("hidden");
-  }
-  toast("Добро пожаловать, " + (name || email) + "!", "ok");
+  if (!CONFIG_OK) document.getElementById("main-config-warn").classList.remove("hidden");
+  toast("Добро пожаловать, " + (name || email).split(" ")[0] + "!", "ok");
 }
 
-// ══════════════════════════════════════════════════════════
-//  BARCODE
-// ══════════════════════════════════════════════════════════
 async function startScan() {
   document.getElementById("qr-reader").style.display = "block";
   document.getElementById("btn-scan-start").style.display = "none";
   document.getElementById("btn-scan-stop").style.display = "block";
+  document.getElementById("btn-manual2").style.display = "none";
   scanning = true;
-
   html5QrCode = new Html5Qrcode("qr-reader");
-
   try {
     const cameras = await Html5Qrcode.getCameras();
-    // Предпочитаем заднюю камеру
     const cam = cameras.find(c => /back|rear|env/i.test(c.label)) || cameras[cameras.length - 1];
     await html5QrCode.start(
       cam ? cam.id : { facingMode: "environment" },
       { fps: 10, qrbox: { width: 240, height: 140 }, aspectRatio: 1.5 },
-      (decodedText) => {
-        setBarcodeValue(decodedText);
-        stopScan();
-        vibrate();
-      },
-      () => {}
+      (text) => { setBarcodeValue(text); stopScan(); vibrate(); }, () => {}
     );
-  } catch (e) {
-    // Fallback: facingMode
+  } catch(e) {
     try {
-      await html5QrCode.start(
-        { facingMode: "environment" },
+      await html5QrCode.start({ facingMode: "environment" },
         { fps: 10, qrbox: { width: 240, height: 140 } },
-        (decodedText) => { setBarcodeValue(decodedText); stopScan(); vibrate(); },
-        () => {}
+        (text) => { setBarcodeValue(text); stopScan(); vibrate(); }, () => {}
       );
-    } catch (e2) {
-      toast("Камера недоступна: " + e2, "err");
-      stopScan();
-    }
+    } catch(e2) { toast("Камера недоступна", "err"); stopScan(); }
   }
 }
 
@@ -533,10 +578,8 @@ async function stopScan() {
   scanning = false;
   document.getElementById("btn-scan-start").style.display = "block";
   document.getElementById("btn-scan-stop").style.display = "none";
-  if (html5QrCode) {
-    try { await html5QrCode.stop(); } catch(_) {}
-    html5QrCode = null;
-  }
+  document.getElementById("btn-manual2").style.display = "flex";
+  if (html5QrCode) { try { await html5QrCode.stop(); } catch(_){} html5QrCode = null; }
   document.getElementById("qr-reader").style.display = "none";
 }
 
@@ -545,136 +588,88 @@ function setBarcodeValue(val) {
   document.getElementById("barcode-val").textContent = val;
   document.getElementById("barcode-result").classList.remove("hidden");
 }
-
 function clearBarcode() {
   barcodeValue = "";
   document.getElementById("barcode-result").classList.add("hidden");
 }
-
 function manualBarcode() {
-  const val = prompt("Введите штрихкод вручную:");
+  const val = prompt("Введите штрихкод:");
   if (val && val.trim()) setBarcodeValue(val.trim());
 }
 
-// ══════════════════════════════════════════════════════════
-//  PHOTO + OCR
-// ══════════════════════════════════════════════════════════
-function takePhoto() {
-  document.getElementById("photo-input").click();
-}
-function uploadPhoto() {
-  document.getElementById("gallery-input").click();
-}
+function takePhoto()   { document.getElementById("photo-input").click(); }
+function uploadPhoto() { document.getElementById("gallery-input").click(); }
 
-function handlePhotoFile(event) {
-  const file = event.target.files[0];
-  if (!file) return;
+function handlePhotoFile(e) {
+  const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
-  reader.onload = (e) => {
-    photoDataUrl = e.target.result;
+  reader.onload = (ev) => {
+    photoDataUrl = ev.target.result;
     const img = document.getElementById("photo-preview");
-    img.src = photoDataUrl;
-    img.style.display = "block";
+    img.src = photoDataUrl; img.style.display = "block";
     runOCR(photoDataUrl);
   };
-  reader.readAsDataURL(file);
-  event.target.value = ""; // reset so same file can be re-selected
+  reader.readAsDataURL(file); e.target.value = "";
 }
 
 async function runOCR(dataUrl) {
   const progress = document.getElementById("ocr-progress");
-  const bar      = document.getElementById("ocr-bar");
-  const pct      = document.getElementById("ocr-pct");
-  const box      = document.getElementById("ocr-box");
-  const area     = document.getElementById("ocr-text");
-
-  progress.style.display = "block";
-  box.style.display = "none";
-  area.value = "";
-
+  const bar = document.getElementById("ocr-bar");
+  const pct = document.getElementById("ocr-pct");
+  const box = document.getElementById("ocr-box");
+  const area = document.getElementById("ocr-text");
+  progress.style.display = "block"; box.style.display = "none"; area.value = "";
   try {
     const worker = await Tesseract.createWorker("rus+eng", 1, {
       logger: (m) => {
         if (m.status === "recognizing text") {
-          const p = Math.round((m.progress || 0) * 100);
-          bar.style.width = p + "%";
-          pct.textContent = p + "%";
+          const p = Math.round((m.progress||0)*100);
+          bar.style.width = p+"%"; pct.textContent = p+"%";
         }
       }
     });
-
     const result = await worker.recognize(dataUrl);
     await worker.terminate();
-
     progress.style.display = "none";
     area.value = result.data.text.trim();
     box.style.display = "block";
-
-    if (result.data.text.trim()) {
-      toast("Текст распознан ✓", "ok");
-    } else {
-      toast("Текст не найден на фото", "inf");
-    }
-  } catch (e) {
-    progress.style.display = "none";
-    box.style.display = "block";
+    toast(result.data.text.trim() ? "Текст распознан ✓" : "Текст не найден", result.data.text.trim() ? "ok" : "inf");
+  } catch(e) {
+    progress.style.display = "none"; box.style.display = "block";
     toast("Ошибка OCR: " + e.message, "err");
   }
 }
 
-// ══════════════════════════════════════════════════════════
-//  SEND TO SHEETS
-// ══════════════════════════════════════════════════════════
 async function sendToSheets() {
-  if (!CONFIG_OK || APPS_SCRIPT_URL.includes("ВСТАВЬТЕ")) {
-    toast("Настройте APPS_SCRIPT_URL в коде!", "err");
-    return;
-  }
-  if (!userEmail) { toast("Сначала войдите через Google", "err"); return; }
-
+  if (!CONFIG_OK) { toast("Настройте APPS_SCRIPT_URL!", "err"); return; }
+  if (!userEmail) { toast("Войдите через Google", "err"); return; }
   const overlay = document.getElementById("sending-overlay");
   overlay.classList.remove("hidden");
-
   const now = new Date();
-  const datetime = now.toLocaleString("ru-RU", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-    hour: "2-digit", minute: "2-digit", second: "2-digit"
-  });
-
+  const datetime = now.toLocaleString("ru-RU", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit", second:"2-digit" });
   const payload = {
-    datetime:  datetime,
-    email:     userEmail,
-    scanner:   document.getElementById("field-scanner").value || userName,
-    barcode:   barcodeValue,
-    price:     document.getElementById("field-price").value,
-    qty:       document.getElementById("field-qty").value,
-    ocrText:   document.getElementById("ocr-text").value,
-    comment:   document.getElementById("field-comment").value
+    datetime, email: userEmail,
+    scanner:  document.getElementById("field-scanner").value || userName,
+    barcode:  barcodeValue,
+    price:    document.getElementById("field-price").value,
+    qty:      document.getElementById("field-qty").value,
+    ocrText:  document.getElementById("ocr-text").value,
+    comment:  document.getElementById("field-comment").value
   };
-
   try {
-    const resp = await fetch(APPS_SCRIPT_URL, {
-      method:  "POST",
-      mode:    "no-cors",    // Apps Script требует no-cors
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(payload)
-    });
+    await fetch(APPS_SCRIPT_URL, { method:"POST", mode:"no-cors", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
     overlay.classList.add("hidden");
-    toast("Данные отправлены в таблицу ✓", "ok");
-    vibrate([100, 50, 100]);
-  } catch (e) {
+    toast("Сохранено в таблицу ✓", "ok");
+    vibrate([80,40,80]);
+  } catch(e) {
     overlay.classList.add("hidden");
-    toast("Ошибка отправки: " + e.message, "err");
+    toast("Ошибка: " + e.message, "err");
   }
 }
 
-// ══════════════════════════════════════════════════════════
-//  UTILS
-// ══════════════════════════════════════════════════════════
 function clearAll() {
-  if (!confirm("Очистить всю форму?")) return;
+  if (!confirm("Очистить форму?")) return;
   clearBarcode();
-  barcodeValue = "";
   photoDataUrl = "";
   document.getElementById("photo-preview").style.display = "none";
   document.getElementById("photo-preview").src = "";
@@ -689,15 +684,11 @@ function clearAll() {
 let toastTimer = null;
 function toast(msg, type = "inf") {
   const el = document.getElementById("toast");
-  el.textContent = msg;
-  el.className = "show " + type;
+  el.textContent = msg; el.className = "show " + type;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.className = ""; }, 3000);
 }
-
-function vibrate(pattern = [60]) {
-  if (navigator.vibrate) navigator.vibrate(pattern);
-}
+function vibrate(p = [60]) { if (navigator.vibrate) navigator.vibrate(p); }
 </script>
 </body>
 </html>
