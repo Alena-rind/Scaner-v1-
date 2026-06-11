@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <title>Сканер</title>
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -13,487 +13,390 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js"></script>
 
   <style>
-    /* ── Apple Design Tokens ── */
     :root {
-      --bg:          #f2f2f7;
-      --bg2:         #ffffff;
-      --grouped:     #f2f2f7;
-      --fill:        rgba(120,120,128,.12);
-      --fill2:       rgba(120,120,128,.08);
-      --separator:   rgba(60,60,67,.18);
-      --label:       #000000;
-      --label2:      rgba(60,60,67,.6);
-      --label3:      rgba(60,60,67,.3);
-      --blue:        #007aff;
-      --green:       #34c759;
-      --red:         #ff3b30;
-      --orange:      #ff9500;
-      --indigo:      #5856d6;
-      --radius-card: 12px;
-      --radius-btn:  14px;
-      --radius-sm:   10px;
-      --font:        -apple-system, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
-      --shadow-card: 0 1px 0 rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06);
+      --bg: #f5f5f2;
+      --surface: #ffffff;
+      --surface-2: #f1f1ed;
+      --text: #171717;
+      --text-2: #666666;
+      --border: rgba(23,23,23,.12);
+      --accent: #ff9f0a;
+      --dark: #1e1e1e;
+      --dark-2: #2a2a2a;
+      --ok: #2ea44f;
+      --err: #d93025;
+      --shadow: 0 8px 24px rgba(0,0,0,.08);
+      --radius: 22px;
+      --radius-sm: 14px;
+      --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
     }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); }
+    body { -webkit-font-smoothing: antialiased; }
+    button, input, textarea { font: inherit; }
+    .hidden { display: none !important; }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html, body {
-      height: 100%;
-      background: var(--bg);
-      color: var(--label);
-      font-family: var(--font);
-      font-size: 17px;
-      line-height: 1.47;
-      -webkit-font-smoothing: antialiased;
-      overscroll-behavior: none;
-    }
-
-    #app { display: flex; flex-direction: column; min-height: 100dvh; }
-
-    /* ── Navigation Bar ── */
-    .nav-bar {
-      position: sticky; top: 0; z-index: 100;
-      background: rgba(242,242,247,.85);
-      -webkit-backdrop-filter: blur(20px);
-      backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--separator);
-      padding: env(safe-area-inset-top, 0px) 16px 0;
-    }
-    .nav-bar-inner {
-      display: flex; align-items: center; justify-content: space-between;
-      height: 44px;
-    }
-    .nav-title {
-      font-size: 17px; font-weight: 600; letter-spacing: -.02em;
-    }
-    .nav-user {
-      display: flex; align-items: center; gap: 8px;
-    }
-    .nav-user img {
-      width: 30px; height: 30px; border-radius: 50%;
-      object-fit: cover; border: 1.5px solid var(--separator);
-    }
-    .nav-user-email {
-      font-size: 13px; color: var(--label2);
-      max-width: 140px; overflow: hidden;
-      text-overflow: ellipsis; white-space: nowrap;
-    }
-
-    /* ── Scrollable content ── */
-    .content {
-      flex: 1;
-      padding: 20px 16px;
-      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
-      display: flex; flex-direction: column; gap: 8px;
-    }
-
-    /* ── Section groups (iOS Settings style) ── */
-    .section-header {
-      font-size: 13px; font-weight: 400;
-      color: var(--label2);
-      text-transform: uppercase; letter-spacing: .04em;
-      padding: 0 4px; margin-bottom: 6px; margin-top: 14px;
-    }
-    .section-header:first-child { margin-top: 0; }
-
-    .group {
-      background: var(--bg2);
-      border-radius: var(--radius-card);
-      box-shadow: var(--shadow-card);
-      overflow: hidden;
-    }
-
-    .row {
-      display: flex; align-items: center;
-      padding: 13px 16px; gap: 12px;
-      position: relative;
-    }
-    .row + .row::before {
-      content: '';
-      position: absolute; top: 0; left: 16px; right: 0;
-      height: 1px; background: var(--separator);
-    }
-    .row-icon {
-      width: 32px; height: 32px; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 17px; flex-shrink: 0;
-    }
-    .row-body { flex: 1; min-width: 0; }
-    .row-label { font-size: 17px; font-weight: 400; }
-    .row-sub { font-size: 13px; color: var(--label2); margin-top: 1px; }
-    .row-value {
-      font-size: 17px; color: var(--label2);
-      max-width: 140px; overflow: hidden;
-      text-overflow: ellipsis; white-space: nowrap;
-    }
-    .row-chevron {
-      color: var(--label3); font-size: 13px; font-weight: 600;
-    }
-
-    /* ── Action Buttons ── */
-    .btn {
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      width: 100%; min-height: 50px;
-      border: none; border-radius: var(--radius-btn);
-      font-size: 17px; font-weight: 600;
-      font-family: var(--font);
-      cursor: pointer;
-      transition: opacity .15s;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .btn:active { opacity: .6; }
-    .btn:disabled { opacity: .35; cursor: not-allowed; }
-
-    .btn-blue   { background: var(--blue);   color: #fff; }
-    .btn-green  { background: var(--green);  color: #fff; }
-    .btn-red    { background: var(--red);    color: #fff; }
-    .btn-fill   { background: var(--fill);   color: var(--blue); }
-    .btn-white  { background: var(--bg2);    color: var(--blue); box-shadow: var(--shadow-card); }
-
-    .btn-google {
-      background: var(--bg2); color: var(--label);
-      border-radius: var(--radius-btn);
-      min-height: 50px; box-shadow: var(--shadow-card);
-      font-size: 17px; font-weight: 500;
-    }
-    .btn-google img { width: 20px; height: 20px; }
-
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-    /* ── Inputs ── */
-    .field { margin-bottom: 0; }
-    .field label {
-      display: block; font-size: 12px; font-weight: 500;
-      color: var(--label2); margin-bottom: 4px;
-      text-transform: uppercase; letter-spacing: .04em;
-      padding: 0 2px;
-    }
-    .field input, .field textarea {
-      width: 100%; background: var(--bg2);
-      border: 1px solid var(--separator);
-      border-radius: var(--radius-sm);
-      color: var(--label); font-size: 17px;
-      font-family: var(--font);
-      padding: 11px 14px; outline: none;
-      transition: border-color .15s;
-      -webkit-appearance: none;
-    }
-    .field input:focus, .field textarea:focus {
-      border-color: var(--blue);
-      box-shadow: 0 0 0 3px rgba(0,122,255,.12);
-    }
-    .field textarea { min-height: 80px; resize: none; }
-    .field input::placeholder, .field textarea::placeholder { color: var(--label3); }
-
-    /* ── inline field inside group row ── */
-    .row-input {
-      flex: 1; background: none; border: none; outline: none;
-      font-size: 17px; font-family: var(--font);
-      color: var(--label); text-align: right;
-      min-width: 0;
-    }
-    .row-input::placeholder { color: var(--label3); }
-
-    /* ── QR Scanner ── */
-    #qr-reader {
-      width: 100%; border-radius: var(--radius-sm);
-      overflow: hidden; background: #000;
-      display: none; margin-bottom: 10px;
-    }
-    #qr-reader video { width: 100%; display: block; }
-    #qr-reader__dashboard_section_csr button { display: none !important; }
-    #qr-reader__status_span { display: none !important; }
-    #qr-reader select {
-      background: var(--bg2); color: var(--label);
-      border: 1px solid var(--separator); border-radius: var(--radius-sm);
-      padding: 8px 12px; margin: 8px 0; width: 100%;
-      font-size: 15px; font-family: var(--font);
-    }
-
-    /* ── Barcode result ── */
-    .barcode-pill {
-      display: flex; align-items: center; gap: 10px;
-      background: rgba(52,199,89,.1);
-      border: 1px solid rgba(52,199,89,.3);
-      border-radius: var(--radius-sm);
-      padding: 11px 14px; margin-bottom: 10px;
-    }
-    .barcode-pill .bp-val {
-      flex: 1; font-size: 16px; font-weight: 600;
-      color: var(--green); word-break: break-all;
-    }
-    .barcode-pill .bp-clear {
-      background: none; border: none; cursor: pointer;
-      color: var(--label3); font-size: 18px; padding: 0 2px;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    /* ── Photo ── */
-    #photo-preview {
-      width: 100%; border-radius: var(--radius-sm);
-      display: none; margin-bottom: 10px;
-      max-height: 220px; object-fit: contain;
-      background: #000;
-    }
-
-    /* ── OCR progress ── */
-    .ocr-progress {
-      display: none; text-align: center;
-      padding: 14px 0; font-size: 15px; color: var(--label2);
-    }
-    .ocr-progress .prog-bar {
-      height: 3px; background: var(--separator);
-      border-radius: 99px; margin: 10px 0; overflow: hidden;
-    }
-    .ocr-progress .prog-fill {
-      height: 100%; background: var(--blue);
-      border-radius: 99px; transition: width .3s; width: 0%;
-    }
-
-    /* ── Login ── */
     #login-screen {
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      min-height: 100dvh; gap: 0; padding: 48px 24px;
-      background: var(--bg);
-    }
-    .login-icon {
-      width: 80px; height: 80px; border-radius: 20px;
-      background: var(--blue);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 38px; margin-bottom: 24px;
-      box-shadow: 0 8px 32px rgba(0,122,255,.3);
-    }
-    .login-title {
-      font-size: 28px; font-weight: 700;
-      letter-spacing: -.04em; text-align: center;
-      margin-bottom: 8px;
-    }
-    .login-sub {
-      font-size: 16px; color: var(--label2);
-      text-align: center; max-width: 280px;
-      margin-bottom: 40px; line-height: 1.4;
+      min-height: 100dvh; display: flex; align-items: center; justify-content: center;
+      padding: 24px; background: linear-gradient(180deg, #fafaf7, #f2f2ee);
     }
     .login-card {
-      width: 100%; max-width: 360px;
-      background: var(--bg2); border-radius: var(--radius-card);
-      padding: 20px; box-shadow: var(--shadow-card);
+      width: 100%; max-width: 380px; background: var(--surface); border-radius: 28px;
+      box-shadow: var(--shadow); padding: 24px;
     }
-    .login-hint {
-      font-size: 13px; color: var(--label2);
-      text-align: center; margin-top: 14px; line-height: 1.4;
+    .login-badge {
+      width: 68px; height: 68px; border-radius: 20px; background: var(--dark); color: var(--accent);
+      display: flex; align-items: center; justify-content: center; font-size: 30px; margin-bottom: 18px;
     }
-
-    /* ── Config warning ── */
+    .login-title { font-size: 28px; font-weight: 800; line-height: 1.05; }
+    .login-sub { color: var(--text-2); margin-top: 10px; line-height: 1.45; }
+    .btn-google {
+      width: 100%; min-height: 54px; margin-top: 20px; border: 0; border-radius: 18px;
+      background: var(--dark); color: #fff; display: flex; align-items: center; justify-content: center; gap: 10px;
+      font-weight: 700;
+    }
+    .btn-google img { width: 20px; height: 20px; }
+    .login-hint { margin-top: 12px; font-size: 13px; color: var(--text-2); line-height: 1.35; }
     .config-warn {
-      background: rgba(255,149,0,.1);
-      border: 1px solid rgba(255,149,0,.3);
-      border-radius: var(--radius-sm);
-      padding: 12px 14px; font-size: 14px;
-      color: #b36200; margin-bottom: 14px; line-height: 1.4;
+      margin-bottom: 14px; padding: 12px 14px; border-radius: 14px;
+      background: rgba(255,159,10,.12); color: #a35a00; border: 1px solid rgba(255,159,10,.26);
+      font-size: 14px;
     }
 
-    /* ── Sending overlay ── */
+    #main-app { min-height: 100dvh; }
+    .topbar {
+      position: sticky; top: 0; z-index: 50; backdrop-filter: blur(16px);
+      background: rgba(245,245,242,.92); border-bottom: 1px solid var(--border);
+      padding: env(safe-area-inset-top, 0px) 16px 10px;
+    }
+    .topbar-row { height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .brand { font-size: 20px; font-weight: 800; letter-spacing: -.03em; }
+    .top-actions { display: flex; align-items: center; gap: 8px; }
+    .icon-btn {
+      min-width: 42px; height: 42px; border-radius: 14px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text); display: inline-flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,.04); font-size: 18px;
+    }
+    .user-chip {
+      display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 180px;
+      padding: 6px 8px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border);
+    }
+    .user-chip img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--surface-2); }
+    .user-chip span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; color: var(--text-2); }
+
+    .screen { padding: 16px 14px 120px; }
+    .card {
+      background: var(--surface); border-radius: 26px; box-shadow: var(--shadow);
+      padding: 16px; margin-bottom: 14px; border: 1px solid rgba(0,0,0,.04);
+    }
+    .card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .card-ico {
+      width: 38px; height: 38px; border-radius: 12px; background: var(--dark); color: var(--accent);
+      display: flex; align-items: center; justify-content: center; font-size: 18px; flex: 0 0 auto;
+    }
+    .card-title { font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: .02em; }
+    .placeholder {
+      min-height: 148px; border-radius: 22px; background: #f7f7f4; border: 1px dashed rgba(0,0,0,.08);
+      display: flex; align-items: center; justify-content: center; text-align: center; color: #8c7b55;
+      padding: 18px; margin-bottom: 12px; position: relative; overflow: hidden;
+    }
+    .placeholder strong { color: #b67300; font-size: 17px; }
+    .scan-grid, .qty-grid { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+    .inline-input, .text-input, .ocr-text {
+      width: 100%; min-height: 58px; border-radius: 18px; border: 1px solid var(--border);
+      background: #fbfbf9; padding: 0 16px; color: var(--text); outline: none; font-size: 18px;
+    }
+    .inline-input:focus, .text-input:focus, .ocr-text:focus { border-color: var(--dark); box-shadow: 0 0 0 3px rgba(0,0,0,.06); }
+    .ocr-text { min-height: 96px; padding: 14px 16px; resize: vertical; }
+    .scan-btn, .dark-btn, .ghost-btn, .qty-btn {
+      min-height: 58px; border: 0; border-radius: 18px; display: inline-flex; align-items: center; justify-content: center;
+      padding: 0 18px; font-weight: 800;
+    }
+    .dark-btn, .scan-btn, .qty-btn { background: var(--dark); color: var(--accent); }
+    .ghost-btn { background: #ecece7; color: var(--text); }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .muted { color: var(--text-2); font-size: 14px; line-height: 1.4; }
+    .result-pill {
+      display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 18px;
+      background: rgba(46,164,79,.08); border: 1px solid rgba(46,164,79,.2); margin-bottom: 10px;
+    }
+    .result-pill span { flex: 1; font-weight: 700; color: #256d3f; word-break: break-all; }
+    .link-btn { background: none; border: 0; color: var(--text-2); font-size: 20px; }
+
+    #qr-reader {
+      width: 100%; border-radius: 20px; overflow: hidden; background: #111; display: none; margin-bottom: 10px;
+      border: 1px solid rgba(0,0,0,.08);
+    }
+    #qr-reader video { width: 100%; display: block; object-fit: cover; }
+    #qr-reader__dashboard_section_csr button,
+    #qr-reader__status_span { display: none !important; }
+    #qr-reader select {
+      width: 100%; margin-top: 8px; min-height: 48px; border-radius: 14px; border: 1px solid var(--border); padding: 0 12px;
+    }
+
+    #photo-preview {
+      width: 100%; max-height: 280px; object-fit: contain; border-radius: 20px; display: none;
+      margin-bottom: 10px; background: #f4f4ef; border: 1px solid rgba(0,0,0,.06);
+    }
+    .ocr-progress { display: none; margin-top: 10px; }
+    .ocr-progress-line {
+      width: 100%; height: 6px; background: #ecece8; border-radius: 999px; overflow: hidden; margin-top: 8px;
+    }
+    .ocr-progress-fill { height: 100%; width: 0%; background: var(--dark); }
+
+    .field-row { display: grid; gap: 10px; }
+    .field-label { font-size: 12px; font-weight: 800; letter-spacing: .06em; color: var(--text-2); text-transform: uppercase; margin-bottom: 8px; }
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      min-height: 58px; padding: 0 4px;
+    }
+    .switch {
+      position: relative; width: 58px; height: 34px; flex: 0 0 auto;
+    }
+    .switch input { display: none; }
+    .slider {
+      position: absolute; inset: 0; border-radius: 999px; background: #d7d7d2; transition: .2s;
+    }
+    .slider::before {
+      content: ''; position: absolute; width: 26px; height: 26px; left: 4px; top: 4px;
+      border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.12); transition: .2s;
+    }
+    .switch input:checked + .slider { background: var(--dark); }
+    .switch input:checked + .slider::before { transform: translateX(24px); }
+
+    .qty-grid { grid-template-columns: 1fr 64px 64px; }
+    .qty-btn { font-size: 28px; }
+
+    #history-screen {
+      position: fixed; inset: 0; z-index: 120; background: rgba(245,245,242,.98); backdrop-filter: blur(10px);
+      padding: env(safe-area-inset-top, 0px) 14px 18px; display: none; overflow: auto;
+    }
+    .history-head {
+      position: sticky; top: 0; background: rgba(245,245,242,.96); padding: 10px 0 12px; display: flex; gap: 8px; align-items: center;
+    }
+    .history-title { flex: 1; font-size: 24px; font-weight: 800; }
+    .history-list { display: flex; flex-direction: column; gap: 10px; }
+    .history-item {
+      background: var(--surface); border-radius: 20px; padding: 14px; box-shadow: 0 6px 18px rgba(0,0,0,.05);
+      border: 1px solid rgba(0,0,0,.05);
+    }
+    .history-top { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+    .history-code { font-size: 15px; font-weight: 800; word-break: break-all; }
+    .history-meta { margin-top: 8px; display: grid; gap: 4px; color: var(--text-2); font-size: 13px; }
+    .history-actions { margin-top: 12px; display: flex; gap: 8px; }
+    .small-btn {
+      min-height: 40px; padding: 0 14px; border-radius: 14px; border: 0; font-weight: 700;
+      background: #ecece7; color: var(--text);
+    }
+    .small-btn.danger { background: #2a2a2a; color: #fff; }
+    .empty-history {
+      padding: 36px 18px; text-align: center; color: var(--text-2); background: var(--surface); border-radius: 22px;
+    }
+
+    .fab-send {
+      position: fixed; right: 18px; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); z-index: 80;
+      width: 78px; height: 78px; border-radius: 50%; border: 0; background: var(--dark); color: var(--accent);
+      box-shadow: 0 16px 34px rgba(0,0,0,.22); display: flex; align-items: center; justify-content: center;
+    }
+    .fab-send svg { width: 34px; height: 34px; }
+
     #sending-overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.45);
-      -webkit-backdrop-filter: blur(8px);
-      backdrop-filter: blur(8px);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 16px; z-index: 9999;
+      position: fixed; inset: 0; background: rgba(0,0,0,.38); backdrop-filter: blur(6px); z-index: 200;
+      display: none; align-items: center; justify-content: center; padding: 24px;
     }
     .sending-card {
-      background: var(--bg2); border-radius: 18px;
-      padding: 32px 40px;
-      display: flex; flex-direction: column; align-items: center; gap: 14px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.2);
+      background: var(--surface); border-radius: 24px; padding: 28px 24px; width: 100%; max-width: 280px; text-align: center;
+      box-shadow: 0 22px 60px rgba(0,0,0,.18);
     }
     .spinner {
-      width: 40px; height: 40px;
-      border: 3px solid var(--separator);
-      border-top-color: var(--blue);
-      border-radius: 50%;
-      animation: spin .7s linear infinite;
+      width: 42px; height: 42px; border-radius: 50%; border: 4px solid #e4e4df; border-top-color: var(--dark);
+      margin: 0 auto 12px; animation: spin .8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .sending-label { font-size: 15px; color: var(--label2); font-weight: 500; }
 
-    /* ── Toast ── */
     #toast {
-      position: fixed; bottom: calc(env(safe-area-inset-bottom,0px) + 24px);
-      left: 50%; transform: translateX(-50%) translateY(80px);
-      background: rgba(50,50,50,.92);
-      -webkit-backdrop-filter: blur(16px);
-      backdrop-filter: blur(16px);
-      color: #fff;
-      border-radius: 99px; padding: 11px 22px;
-      font-size: 15px; font-weight: 500;
-      box-shadow: 0 4px 20px rgba(0,0,0,.25);
-      transition: transform .35s cubic-bezier(.34,1.4,.64,1);
-      z-index: 9998; white-space: nowrap; pointer-events: none;
+      position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 112px); transform: translateX(-50%) translateY(20px);
+      background: rgba(28,28,28,.94); color: #fff; padding: 12px 16px; border-radius: 999px; font-size: 14px;
+      opacity: 0; pointer-events: none; transition: .22s; z-index: 220; white-space: nowrap; max-width: calc(100vw - 30px);
+      overflow: hidden; text-overflow: ellipsis;
     }
-    #toast.show { transform: translateX(-50%) translateY(0); }
-    #toast.ok   { background: rgba(52,199,89,.92); }
-    #toast.err  { background: rgba(255,59,48,.92); }
-    #toast.inf  { background: rgba(0,122,255,.92); }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.ok { background: rgba(46,164,79,.95); }
+    #toast.err { background: rgba(217,48,37,.95); }
 
-    /* ── Utility ── */
-    .hidden { display: none !important; }
-    .gap-8 { display: flex; flex-direction: column; gap: 8px; }
-    .gap-10 { display: flex; flex-direction: column; gap: 10px; }
-
-    /* ── Divider between cards ── */
-    .spacer { height: 8px; }
+    @media (min-width: 760px) {
+      .screen { max-width: 760px; margin: 0 auto; }
+      .topbar-row { max-width: 760px; margin: 0 auto; }
+      #history-screen > .history-wrap { max-width: 760px; margin: 0 auto; }
+    }
   </style>
 </head>
 <body>
-
 <script>
   const GOOGLE_CLIENT_ID = "147988593400-75qo13gh77ikliq5vumdp8k2li2cb8gn.apps.googleusercontent.com";
   const APPS_SCRIPT_URL  = "https://script.google.com/macros/s/AKfycbwWJtwlYXJoOnF6rCFe2qoryNN77IzgysRLEMdXEoTFZX3v7QVnyuZyDGZgT-Gyf9jU/exec";
   const CONFIG_OK = !GOOGLE_CLIENT_ID.includes("ВСТАВЬТЕ") && !APPS_SCRIPT_URL.includes("ВСТАВЬТЕ");
 </script>
 
-<div id="app">
-
-  <!-- ══ LOGIN ══ -->
-  <div id="login-screen">
-    <div class="login-icon">📦</div>
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-badge">▦</div>
     <div class="login-title">Сканер товаров</div>
-    <div class="login-sub">Штрихкоды, фото и OCR прямо в браузере</div>
-
-    <div class="login-card">
-      <div id="config-warning" class="config-warn hidden">
-        ⚠️ Заполните GOOGLE_CLIENT_ID и APPS_SCRIPT_URL в коде
-      </div>
-      <button class="btn btn-google" id="google-signin-btn" onclick="signIn()">
-        <img src="https://developers.google.com/identity/images/g-logo.png" alt="G">
-        Войти через Google
-      </button>
-      <p class="login-hint">Ваш email сохраняется в таблице для идентификации записей</p>
-    </div>
+    <div class="login-sub">Светлая версия с тёмными кнопками, историей, OCR и улучшенным мобильным сканированием.</div>
+    <div id="config-warning" class="config-warn hidden">⚠️ Заполните GOOGLE_CLIENT_ID и APPS_SCRIPT_URL в коде.</div>
+    <button class="btn-google" id="google-signin-btn" onclick="signIn()">
+      <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google">
+      Войти через Google
+    </button>
+    <div class="login-hint">Email сохраняется в таблице для идентификации записи.</div>
   </div>
+</div>
 
-  <!-- ══ MAIN ══ -->
-  <div id="main-app" class="hidden">
-
-    <div class="nav-bar">
-      <div class="nav-bar-inner">
-        <div class="nav-title">Сканер</div>
-        <div class="nav-user">
-          <img id="user-avatar" src="" alt="" />
-          <span class="nav-user-email" id="user-email-chip"></span>
+<div id="main-app" class="hidden">
+  <div class="topbar">
+    <div class="topbar-row">
+      <div class="brand">Сканер</div>
+      <div class="top-actions">
+        <button class="icon-btn" onclick="openHistory()" aria-label="История">🕘</button>
+        <div class="user-chip">
+          <img id="user-avatar" src="" alt="">
+          <span id="user-email-chip"></span>
         </div>
       </div>
     </div>
+  </div>
 
-    <div class="content">
+  <div class="screen">
+    <div id="main-config-warn" class="config-warn hidden">⚠️ Apps Script URL не настроен — отправка недоступна.</div>
 
-      <div id="main-config-warn" class="config-warn hidden">
-        ⚠️ Apps Script URL не настроен — отправка недоступна
+    <section class="card">
+      <div class="card-head">
+        <div class="card-ico">⌗</div>
+        <div class="card-title">Штрихкод</div>
       </div>
-
-      <!-- ─── ШТРИХКОД ─── -->
-      <div class="section-header">Штрихкод</div>
 
       <div id="qr-reader"></div>
 
-      <div class="barcode-pill hidden" id="barcode-result">
-        <span style="font-size:18px;">✓</span>
-        <span class="bp-val" id="barcode-val"></span>
-        <button class="bp-clear" onclick="clearBarcode()">✕</button>
+      <div id="barcode-placeholder" class="placeholder">
+        <div><strong>Нет сканированных штрихкодов</strong></div>
+      </div>
+
+      <div class="result-pill hidden" id="barcode-result">
+        <span id="barcode-val"></span>
+        <button class="link-btn" onclick="clearBarcode()" aria-label="Очистить">✕</button>
+      </div>
+
+      <div class="scan-grid">
+        <input id="manual-barcode-input" class="inline-input" type="text" placeholder="Введите или сканируйте штрихкод">
+        <button class="scan-btn" id="btn-scan-start" onclick="startScan()" aria-label="Сканировать">📷</button>
+      </div>
+      <div class="two-col" style="margin-top:10px;">
+        <button class="ghost-btn" id="btn-scan-stop" onclick="stopScan()" style="display:none;">Стоп</button>
+        <button class="ghost-btn" onclick="applyManualBarcode()">Подставить вручную</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <div class="card-ico">🖼</div>
+        <div class="card-title">Изображение</div>
+      </div>
+
+      <img id="photo-preview" alt="Фото товара" />
+      <div id="photo-placeholder" class="placeholder">
+        <div><strong>Нет снятых изображений</strong></div>
       </div>
 
       <div class="two-col">
-        <button class="btn btn-blue" id="btn-scan-start" onclick="startScan()">
-          <span>📷</span> Сканировать
-        </button>
-        <button class="btn btn-fill" id="btn-scan-stop" onclick="stopScan()" style="display:none;">
-          <span>⏹</span> Стоп
-        </button>
-        <button class="btn btn-white" onclick="manualBarcode()" style="grid-column: 2; display:none;" id="btn-manual">
-          ✏️ Вручную
-        </button>
+        <button class="dark-btn" onclick="takePhoto()">Сделать фото</button>
+        <button class="ghost-btn" onclick="uploadPhoto()">Галерея</button>
       </div>
-      <button class="btn btn-white" onclick="manualBarcode()" id="btn-manual2" style="margin-top:2px;">
-        ✏️ Ввести вручную
-      </button>
-
-      <!-- ─── ФОТО + OCR ─── -->
-      <div class="section-header" style="margin-top:20px;">Фото и распознавание текста</div>
-
-      <img id="photo-preview" alt="Фото" />
-
-      <div class="two-col">
-        <button class="btn btn-blue" onclick="takePhoto()">📸 Фото</button>
-        <button class="btn btn-white" onclick="uploadPhoto()">🖼 Галерея</button>
-      </div>
-      <input type="file" id="photo-input"   accept="image/*" capture="environment" style="display:none" onchange="handlePhotoFile(event)">
+      <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoFile(event)">
       <input type="file" id="gallery-input" accept="image/*" style="display:none" onchange="handlePhotoFile(event)">
 
       <div class="ocr-progress" id="ocr-progress">
-        <div>Распознаю текст… <span id="ocr-pct">0%</span></div>
-        <div class="prog-bar"><div class="prog-fill" id="ocr-bar"></div></div>
+        <div class="muted">Распознаю текст… <span id="ocr-pct">0%</span></div>
+        <div class="ocr-progress-line"><div class="ocr-progress-fill" id="ocr-bar"></div></div>
       </div>
 
-      <div id="ocr-box" style="display:none;">
-        <div class="field">
-          <label>Распознанный текст</label>
-          <textarea id="ocr-text" placeholder="Текст с фото появится здесь…"></textarea>
+      <div class="field-row" style="margin-top:12px;">
+        <div>
+          <div class="field-label">Распознанный текст</div>
+          <textarea id="ocr-text" class="ocr-text" placeholder="Текст с фото появится здесь…"></textarea>
         </div>
       </div>
+    </section>
 
-      <!-- ─── ДАННЫЕ ─── -->
-      <div class="section-header" style="margin-top:20px;">Данные записи</div>
-
-      <div class="group">
-        <div class="row">
-          <div class="row-icon" style="background:rgba(0,122,255,.12);">👤</div>
-          <div class="row-body"><div class="row-label">Кто сканировал</div></div>
-          <input class="row-input" id="field-scanner" type="text" placeholder="Имя">
-        </div>
-        <div class="row">
-          <div class="row-icon" style="background:rgba(52,199,89,.12);">💰</div>
-          <div class="row-body"><div class="row-label">Цена</div></div>
-          <input class="row-input" id="field-price" type="number" placeholder="0.00" inputmode="decimal" step="0.01">
-        </div>
-        <div class="row">
-          <div class="row-icon" style="background:rgba(255,149,0,.12);">📦</div>
-          <div class="row-body"><div class="row-label">Количество</div></div>
-          <input class="row-input" id="field-qty" type="number" placeholder="1" inputmode="numeric" min="1" value="1">
-        </div>
-        <div class="row" style="align-items:flex-start; padding-top:14px; padding-bottom:14px;">
-          <div class="row-icon" style="background:rgba(88,86,214,.12); margin-top:2px;">💬</div>
-          <div class="row-body">
-            <div class="row-label" style="margin-bottom:6px;">Комментарий</div>
-            <textarea id="field-comment" placeholder="Необязательно…"
-              style="width:100%;background:none;border:none;outline:none;font-size:16px;font-family:var(--font);color:var(--label);resize:none;min-height:60px;padding:0;"></textarea>
-          </div>
-        </div>
+    <section class="card">
+      <div class="card-head">
+        <div class="card-ico">₽</div>
+        <div class="card-title">Цена</div>
       </div>
+      <div class="field-row">
+        <input class="text-input" id="field-price" type="number" placeholder="Введите цену" inputmode="decimal" step="0.01" required>
+        <div class="muted">Поле обязательно для отправки.</div>
+      </div>
+    </section>
 
-      <!-- ─── ОТПРАВИТЬ ─── -->
-      <div class="spacer"></div>
-      <button class="btn btn-green" onclick="sendToSheets()">
-        Отправить в Google Sheets
-      </button>
-      <button class="btn btn-fill" onclick="clearAll()" style="color:var(--red); background:rgba(255,59,48,.08); margin-top:4px;">
-        Очистить форму
-      </button>
+    <section class="card">
+      <div class="card-head">
+        <div class="card-ico">⇄</div>
+        <div class="card-title">Перевод</div>
+      </div>
+      <div class="toggle-row">
+        <div class="muted">Отметьте, если это перевод.</div>
+        <label class="switch">
+          <input type="checkbox" id="field-transfer">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </section>
 
-      <div style="height:16px;"></div>
-    </div>
+    <section class="card">
+      <div class="card-head">
+        <div class="card-ico">#</div>
+        <div class="card-title">Кол-во</div>
+      </div>
+      <div class="qty-grid">
+        <input class="text-input" id="field-qty" type="number" value="1" min="1" inputmode="numeric">
+        <button class="qty-btn" onclick="changeQty(-1)" aria-label="Уменьшить">−</button>
+        <button class="qty-btn" onclick="changeQty(1)" aria-label="Увеличить">+</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <div class="card-ico">👤</div>
+        <div class="card-title">Имя</div>
+      </div>
+      <div class="field-row">
+        <input class="text-input" id="field-scanner" type="text" placeholder="Кто сканировал">
+      </div>
+    </section>
   </div>
 
+  <button class="fab-send" onclick="sendToSheets()" aria-label="Отправить">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.4 20.4 21.2 12 3.4 3.6l.1 6.3 12.7 2.1-12.7 2.1-.1 6.3Z"/></svg>
+  </button>
 </div>
 
-<!-- Overlay -->
-<div id="sending-overlay" class="hidden">
+<div id="history-screen">
+  <div class="history-wrap">
+    <div class="history-head">
+      <div class="history-title">История</div>
+      <button class="small-btn" onclick="exportHistoryCsv()">CSV</button>
+      <button class="small-btn" onclick="clearHistory()">Очистить всё</button>
+      <button class="small-btn danger" onclick="closeHistory()">Закрыть</button>
+    </div>
+    <div id="history-count" class="muted" style="margin-bottom:10px;"></div>
+    <div id="history-list" class="history-list"></div>
+  </div>
+</div>
+
+<div id="sending-overlay">
   <div class="sending-card">
     <div class="spinner"></div>
-    <div class="sending-label">Отправка данных…</div>
+    <div>Отправка данных…</div>
   </div>
 </div>
 
@@ -503,11 +406,20 @@
 let userEmail = "", userName = "", userPicture = "";
 let barcodeValue = "", photoDataUrl = "";
 let html5QrCode = null, scanning = false;
+const HISTORY_KEY = "scanner_history_v2";
+const USER_KEY = "scanner_user";
+const HISTORY_LIMIT = 1000;
 
 window.addEventListener("DOMContentLoaded", () => {
   if (!CONFIG_OK) document.getElementById("config-warning").classList.remove("hidden");
-  const saved = localStorage.getItem("scanner_user");
-  if (saved) { const u = JSON.parse(saved); loginUser(u.email, u.name, u.picture); }
+  try {
+    const saved = localStorage.getItem(USER_KEY);
+    if (saved) {
+      const u = JSON.parse(saved);
+      loginUser(u.email, u.name, u.picture, true);
+    }
+  } catch(_) {}
+  renderHistory();
 });
 
 function signIn() {
@@ -525,168 +437,379 @@ function signIn() {
 
 function renderGoogleButton() {
   const btn = document.getElementById("google-signin-btn");
+  if (!btn || btn.dataset.rendered) return;
   btn.style.display = "none";
+  btn.dataset.rendered = "1";
   const wrap = document.createElement("div");
-  google.accounts.id.renderButton(wrap, { theme: "outline", size: "large", width: "320" });
+  google.accounts.id.renderButton(wrap, { theme: "outline", size: "large", width: 320 });
   btn.parentNode.insertBefore(wrap, btn.nextSibling);
 }
 
 function handleGoogleCallback(response) {
   const parts = response.credential.split(".");
-  const p = JSON.parse(atob(parts[1].replace(/-/g,"+").replace(/_/g,"/")));
+  const p = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
   loginUser(p.email, p.name, p.picture);
-  localStorage.setItem("scanner_user", JSON.stringify({ email: p.email, name: p.name, picture: p.picture }));
+  localStorage.setItem(USER_KEY, JSON.stringify({ email: p.email, name: p.name, picture: p.picture }));
 }
 
-function loginUser(email, name, picture) {
-  userEmail = email; userName = name; userPicture = picture;
+function loginUser(email, name, picture, silent = false) {
+  userEmail = email || "";
+  userName = name || "";
+  userPicture = picture || "";
   document.getElementById("login-screen").classList.add("hidden");
   document.getElementById("main-app").classList.remove("hidden");
-  document.getElementById("user-email-chip").textContent = email;
+  document.getElementById("user-email-chip").textContent = email || "Без email";
   document.getElementById("user-avatar").src = picture || "";
   document.getElementById("field-scanner").value = name || "";
   if (!CONFIG_OK) document.getElementById("main-config-warn").classList.remove("hidden");
-  toast("Добро пожаловать, " + (name || email).split(" ")[0] + "!", "ok");
+  if (!silent) toast("Добро пожаловать, " + ((name || email || "").split(" ")[0] || "пользователь") + "!", "ok");
+}
+
+function setBarcodeValue(val) {
+  barcodeValue = (val || "").trim();
+  document.getElementById("manual-barcode-input").value = barcodeValue;
+  document.getElementById("barcode-val").textContent = barcodeValue;
+  document.getElementById("barcode-result").classList.toggle("hidden", !barcodeValue);
+  document.getElementById("barcode-placeholder").classList.toggle("hidden", !!barcodeValue);
+}
+
+function clearBarcode() {
+  setBarcodeValue("");
+}
+
+function applyManualBarcode() {
+  const val = document.getElementById("manual-barcode-input").value.trim();
+  if (!val) { toast("Введите штрихкод", "inf"); return; }
+  setBarcodeValue(val);
+  toast("Штрихкод сохранён", "ok");
 }
 
 async function startScan() {
   document.getElementById("qr-reader").style.display = "block";
   document.getElementById("btn-scan-start").style.display = "none";
-  document.getElementById("btn-scan-stop").style.display = "block";
-  document.getElementById("btn-manual2").style.display = "none";
+  document.getElementById("btn-scan-stop").style.display = "inline-flex";
   scanning = true;
-  html5QrCode = new Html5Qrcode("qr-reader");
-  try {
-    const cameras = await Html5Qrcode.getCameras();
-    const cam = cameras.find(c => /back|rear|env/i.test(c.label)) || cameras[cameras.length - 1];
-    await html5QrCode.start(
-      cam ? cam.id : { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 240, height: 140 }, aspectRatio: 1.5 },
-      (text) => { setBarcodeValue(text); stopScan(); vibrate(); }, () => {}
-    );
-  } catch(e) {
-    try {
-      await html5QrCode.start({ facingMode: "environment" },
-        { fps: 10, qrbox: { width: 240, height: 140 } },
-        (text) => { setBarcodeValue(text); stopScan(); vibrate(); }, () => {}
-      );
-    } catch(e2) { toast("Камера недоступна", "err"); stopScan(); }
+
+  if (html5QrCode) {
+    try { await html5QrCode.stop(); } catch(_) {}
+    html5QrCode = null;
   }
+  html5QrCode = new Html5Qrcode("qr-reader");
+
+  const onSuccess = (text) => { setBarcodeValue(text); stopScan(); vibrate([40, 30, 60]); };
+  const configPrimary = {
+    fps: 8,
+    qrbox: { width: 300, height: 170 },
+    aspectRatio: 4 / 3,
+    disableFlip: true,
+    videoConstraints: {
+      facingMode: { ideal: "environment" },
+      width: { ideal: 1920 },
+      height: { ideal: 1080 }
+    }
+  };
+  const configFallback = {
+    fps: 6,
+    qrbox: { width: 280, height: 160 },
+    aspectRatio: 4 / 3,
+    disableFlip: true
+  };
+
+  try {
+    await html5QrCode.start({ facingMode: { exact: "environment" } }, configPrimary, onSuccess, () => {});
+    setTimeout(applyCameraTweaks, 900);
+  } catch (e1) {
+    try {
+      const cameras = await Html5Qrcode.getCameras();
+      const cam = cameras.find(c => /back|rear|env|wide/i.test(c.label)) || cameras[cameras.length - 1];
+      await html5QrCode.start(cam ? cam.id : { facingMode: "environment" }, configFallback, onSuccess, () => {});
+      setTimeout(applyCameraTweaks, 900);
+    } catch (e2) {
+      toast("Камера недоступна", "err");
+      stopScan();
+    }
+  }
+}
+
+async function applyCameraTweaks() {
+  try {
+    if (!html5QrCode || !html5QrCode.getRunningTrackSettings) return;
+    const track = html5QrCode.getRunningTrackCameraCapabilities ? null : null;
+    const video = document.querySelector('#qr-reader video');
+    if (video) {
+      video.setAttribute('playsinline', 'true');
+      video.style.objectFit = 'cover';
+    }
+    const mediaTrack = html5QrCode.getRunningTrack ? html5QrCode.getRunningTrack() : null;
+    if (mediaTrack && mediaTrack.getCapabilities) {
+      const caps = mediaTrack.getCapabilities();
+      const advanced = [];
+      if (caps.focusMode && caps.focusMode.includes('continuous')) advanced.push({ focusMode: 'continuous' });
+      if (caps.zoom) advanced.push({ zoom: Math.min(caps.zoom.max || 1, Math.max(caps.zoom.min || 1, 1.4)) });
+      if (advanced.length) {
+        try { await mediaTrack.applyConstraints({ advanced }); } catch(_) {}
+      }
+    }
+  } catch(_) {}
 }
 
 async function stopScan() {
   scanning = false;
-  document.getElementById("btn-scan-start").style.display = "block";
+  document.getElementById("btn-scan-start").style.display = "inline-flex";
   document.getElementById("btn-scan-stop").style.display = "none";
-  document.getElementById("btn-manual2").style.display = "flex";
-  if (html5QrCode) { try { await html5QrCode.stop(); } catch(_){} html5QrCode = null; }
+  if (html5QrCode) {
+    try { await html5QrCode.stop(); } catch(_) {}
+    try { await html5QrCode.clear(); } catch(_) {}
+    html5QrCode = null;
+  }
   document.getElementById("qr-reader").style.display = "none";
 }
 
-function setBarcodeValue(val) {
-  barcodeValue = val;
-  document.getElementById("barcode-val").textContent = val;
-  document.getElementById("barcode-result").classList.remove("hidden");
-}
-function clearBarcode() {
-  barcodeValue = "";
-  document.getElementById("barcode-result").classList.add("hidden");
-}
-function manualBarcode() {
-  const val = prompt("Введите штрихкод:");
-  if (val && val.trim()) setBarcodeValue(val.trim());
-}
-
-function takePhoto()   { document.getElementById("photo-input").click(); }
+function takePhoto() { document.getElementById("photo-input").click(); }
 function uploadPhoto() { document.getElementById("gallery-input").click(); }
 
 function handlePhotoFile(e) {
-  const file = e.target.files[0]; if (!file) return;
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
   const reader = new FileReader();
   reader.onload = (ev) => {
     photoDataUrl = ev.target.result;
     const img = document.getElementById("photo-preview");
-    img.src = photoDataUrl; img.style.display = "block";
+    img.src = photoDataUrl;
+    img.style.display = "block";
+    document.getElementById("photo-placeholder").classList.add("hidden");
     runOCR(photoDataUrl);
   };
-  reader.readAsDataURL(file); e.target.value = "";
+  reader.readAsDataURL(file);
+  e.target.value = "";
 }
 
 async function runOCR(dataUrl) {
   const progress = document.getElementById("ocr-progress");
   const bar = document.getElementById("ocr-bar");
   const pct = document.getElementById("ocr-pct");
-  const box = document.getElementById("ocr-box");
   const area = document.getElementById("ocr-text");
-  progress.style.display = "block"; box.style.display = "none"; area.value = "";
+  progress.style.display = "block";
+  area.value = "";
+  bar.style.width = "0%";
+  pct.textContent = "0%";
   try {
     const worker = await Tesseract.createWorker("rus+eng", 1, {
       logger: (m) => {
         if (m.status === "recognizing text") {
-          const p = Math.round((m.progress||0)*100);
-          bar.style.width = p+"%"; pct.textContent = p+"%";
+          const p = Math.round((m.progress || 0) * 100);
+          bar.style.width = p + "%";
+          pct.textContent = p + "%";
         }
       }
     });
     const result = await worker.recognize(dataUrl);
     await worker.terminate();
     progress.style.display = "none";
-    area.value = result.data.text.trim();
-    box.style.display = "block";
-    toast(result.data.text.trim() ? "Текст распознан ✓" : "Текст не найден", result.data.text.trim() ? "ok" : "inf");
-  } catch(e) {
-    progress.style.display = "none"; box.style.display = "block";
+    area.value = (result.data.text || "").trim();
+    toast(area.value ? "Текст распознан" : "Текст не найден", area.value ? "ok" : "inf");
+  } catch (e) {
+    progress.style.display = "none";
     toast("Ошибка OCR: " + e.message, "err");
   }
+}
+
+function changeQty(delta) {
+  const input = document.getElementById("field-qty");
+  let val = parseInt(input.value || "1", 10);
+  if (Number.isNaN(val) || val < 1) val = 1;
+  val += delta;
+  if (val < 1) val = 1;
+  input.value = String(val);
+}
+
+function buildPayload() {
+  const now = new Date();
+  return {
+    barcode: barcodeValue || document.getElementById("manual-barcode-input").value.trim(),
+    ocrText: document.getElementById("ocr-text").value.trim(),
+    price: document.getElementById("field-price").value.trim(),
+    transfer: document.getElementById("field-transfer").checked ? "Да" : "Нет",
+    qty: document.getElementById("field-qty").value.trim() || "1",
+    datetime: now.toLocaleString("ru-RU", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit", second: "2-digit"
+    }),
+    email: userEmail,
+    scanner: document.getElementById("field-scanner").value.trim() || userName,
+    comment: ""
+  };
 }
 
 async function sendToSheets() {
   if (!CONFIG_OK) { toast("Настройте APPS_SCRIPT_URL!", "err"); return; }
   if (!userEmail) { toast("Войдите через Google", "err"); return; }
-  const overlay = document.getElementById("sending-overlay");
-  overlay.classList.remove("hidden");
-  const now = new Date();
-  const datetime = now.toLocaleString("ru-RU", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit", second:"2-digit" });
-  const payload = {
-    datetime, email: userEmail,
-    scanner:  document.getElementById("field-scanner").value || userName,
-    barcode:  barcodeValue,
-    price:    document.getElementById("field-price").value,
-    qty:      document.getElementById("field-qty").value,
-    ocrText:  document.getElementById("ocr-text").value,
-    comment:  document.getElementById("field-comment").value
-  };
+  const payload = buildPayload();
+  if (!payload.price) {
+    toast("Цена обязательна", "err");
+    document.getElementById("field-price").focus();
+    return;
+  }
+  if (!payload.barcode) {
+    toast("Добавьте штрихкод", "err");
+    return;
+  }
+
+  document.getElementById("sending-overlay").style.display = "flex";
   try {
-    await fetch(APPS_SCRIPT_URL, { method:"POST", mode:"no-cors", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
-    overlay.classList.add("hidden");
-    toast("Сохранено в таблицу ✓", "ok");
-    vibrate([80,40,80]);
-  } catch(e) {
-    overlay.classList.add("hidden");
+    await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    saveHistoryEntry(payload);
+    document.getElementById("sending-overlay").style.display = "none";
+    toast("Сохранено в таблицу", "ok");
+    vibrate([60, 30, 80]);
+    clearFormAfterSend();
+  } catch (e) {
+    document.getElementById("sending-overlay").style.display = "none";
     toast("Ошибка: " + e.message, "err");
   }
 }
 
-function clearAll() {
-  if (!confirm("Очистить форму?")) return;
+function clearFormAfterSend() {
   clearBarcode();
   photoDataUrl = "";
-  document.getElementById("photo-preview").style.display = "none";
-  document.getElementById("photo-preview").src = "";
-  document.getElementById("ocr-box").style.display = "none";
+  const img = document.getElementById("photo-preview");
+  img.src = "";
+  img.style.display = "none";
+  document.getElementById("photo-placeholder").classList.remove("hidden");
   document.getElementById("ocr-text").value = "";
   document.getElementById("field-price").value = "";
+  document.getElementById("field-transfer").checked = false;
   document.getElementById("field-qty").value = "1";
-  document.getElementById("field-comment").value = "";
-  toast("Форма очищена", "inf");
+  document.getElementById("manual-barcode-input").value = "";
+}
+
+function readHistory() {
+  try {
+    const data = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+    return Array.isArray(data) ? data : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function writeHistory(items) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, HISTORY_LIMIT)));
+}
+
+function saveHistoryEntry(payload) {
+  const list = readHistory();
+  list.unshift({ id: Date.now() + '-' + Math.random().toString(36).slice(2, 8), ...payload });
+  if (list.length > HISTORY_LIMIT) list.length = HISTORY_LIMIT;
+  writeHistory(list);
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = readHistory();
+  document.getElementById('history-count').textContent = `Записей: ${list.length} / ${HISTORY_LIMIT}`;
+  const box = document.getElementById('history-list');
+  if (!list.length) {
+    box.innerHTML = '<div class="empty-history">История пока пустая.</div>';
+    return;
+  }
+  box.innerHTML = list.map(item => `
+    <div class="history-item">
+      <div class="history-top">
+        <div>
+          <div class="history-code">${escapeHtml(item.barcode || 'Без штрихкода')}</div>
+          <div class="history-meta">
+            <div>Цена: ${escapeHtml(item.price || '')}</div>
+            <div>Перевод: ${escapeHtml(item.transfer || 'Нет')}</div>
+            <div>Кол-во: ${escapeHtml(item.qty || '1')}</div>
+            <div>Имя: ${escapeHtml(item.scanner || '')}</div>
+            <div>${escapeHtml(item.datetime || '')}</div>
+          </div>
+        </div>
+      </div>
+      <div class="history-actions">
+        <button class="small-btn" onclick="fillFromHistory('${item.id}')">Повторить</button>
+        <button class="small-btn danger" onclick="deleteHistoryItem('${item.id}')">Удалить</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function fillFromHistory(id) {
+  const item = readHistory().find(x => x.id === id);
+  if (!item) return;
+  setBarcodeValue(item.barcode || '');
+  document.getElementById('field-price').value = item.price || '';
+  document.getElementById('field-transfer').checked = (item.transfer === 'Да');
+  document.getElementById('field-qty').value = item.qty || '1';
+  document.getElementById('field-scanner').value = item.scanner || userName || '';
+  document.getElementById('ocr-text').value = item.ocrText || '';
+  closeHistory();
+  toast('Данные подставлены', 'ok');
+}
+
+function deleteHistoryItem(id) {
+  const list = readHistory().filter(x => x.id !== id);
+  writeHistory(list);
+  renderHistory();
+  toast('Запись удалена', 'inf');
+}
+
+function clearHistory() {
+  if (!confirm('Удалить всю историю?')) return;
+  writeHistory([]);
+  renderHistory();
+  toast('История очищена', 'inf');
+}
+
+function exportHistoryCsv() {
+  const list = readHistory();
+  if (!list.length) { toast('История пуста', 'inf'); return; }
+  const header = ['Дата и время','Email','Кто сканировал','Штрихкод','Цена','Перевод','Количество','Текст с фото'];
+  const rows = list.map(x => [x.datetime, x.email, x.scanner, x.barcode, x.price, x.transfer, x.qty, x.ocrText]);
+  const csv = [header, ...rows].map(row => row.map(csvEscape).join(';')).join('\n');
+  const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'scanner-history.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function csvEscape(v) {
+  const s = String(v ?? '');
+  return '"' + s.replaceAll('"', '""') + '"';
+}
+
+function escapeHtml(s) {
+  return String(s ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
+
+function openHistory() {
+  renderHistory();
+  document.getElementById('history-screen').style.display = 'block';
+}
+function closeHistory() {
+  document.getElementById('history-screen').style.display = 'none';
 }
 
 let toastTimer = null;
-function toast(msg, type = "inf") {
-  const el = document.getElementById("toast");
-  el.textContent = msg; el.className = "show " + type;
+function toast(msg, type = 'inf') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.className = ""; }, 3000);
+  toastTimer = setTimeout(() => { el.className = ''; }, 2600);
 }
 function vibrate(p = [60]) { if (navigator.vibrate) navigator.vibrate(p); }
 </script>
