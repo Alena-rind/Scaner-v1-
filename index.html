@@ -3,701 +3,79 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <title>Сканер товаров</title>
-
-  <!-- Google Identity Services -->
+  <title>Учет продаж по ШК</title>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-
-  <!-- html5-qrcode -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-
-  <!-- Tesseract.js OCR -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js"></script>
-
   <style>
-    /* ── Tokens ── */
-    :root {
-      --bg: #0f1117;
-      --surface: #1c1f2e;
-      --card: #252840;
-      --accent: #5b8af5;
-      --accent2: #a78bfa;
-      --success: #34d399;
-      --warn: #fbbf24;
-      --danger: #f87171;
-      --text: #e8eaf6;
-      --muted: #7c85b3;
-      --border: #313557;
-      --radius: 16px;
-      --radius-sm: 10px;
-      --shadow: 0 4px 24px rgba(0,0,0,.45);
-      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html, body {
-      height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font);
-      font-size: 16px;
-      line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
-      overscroll-behavior: none;
-    }
-
-    /* ── Layout ── */
-    #app { display: flex; flex-direction: column; min-height: 100dvh; }
-
-    .top-bar {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 18px 10px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      position: sticky; top: 0; z-index: 100;
-    }
-    .top-bar h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: .02em; }
-    .top-bar .user-chip {
-      display: flex; align-items: center; gap: 8px;
-      background: var(--card); border-radius: 99px;
-      padding: 6px 12px 6px 6px;
-      font-size: .8rem; color: var(--muted);
-      max-width: 180px; overflow: hidden;
-    }
-    .top-bar .user-chip img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
-    .top-bar .user-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-    .content { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
-
-    /* ── Cards ── */
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px;
-      box-shadow: var(--shadow);
-    }
-    .card-title {
-      font-size: .75rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .1em; color: var(--muted); margin-bottom: 14px;
-      display: flex; align-items: center; gap: 7px;
-    }
-    .card-title .dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--accent); display: inline-block;
-    }
-
-    /* ── Buttons ── */
-    .btn {
-      display: flex; align-items: center; justify-content: center; gap: 9px;
-      width: 100%; min-height: 54px;
-      border: none; border-radius: var(--radius-sm);
-      font-size: 1rem; font-weight: 600; cursor: pointer;
-      transition: opacity .15s, transform .1s;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .btn:active { opacity: .75; transform: scale(.97); }
-    .btn:disabled { opacity: .4; cursor: not-allowed; transform: none !important; }
-
-    .btn-primary { background: var(--accent); color: #fff; }
-    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
-    .btn-success { background: var(--success); color: #0a2e22; }
-    .btn-danger { background: var(--danger); color: #2e0a0a; }
-    .btn-sm { min-height: 42px; font-size: .9rem; }
-
-    .btn-google {
-      background: #fff; color: #3c4043;
-      font-size: 1rem; font-weight: 600;
-      border-radius: var(--radius-sm);
-      min-height: 54px;
-    }
-    .btn-google img { width: 22px; height: 22px; }
-
-    /* ── Inputs ── */
-    .field { margin-bottom: 12px; }
-    .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 5px; font-weight: 600; }
-    .field input, .field textarea {
-      width: 100%; background: var(--surface);
-      border: 1px solid var(--border); border-radius: var(--radius-sm);
-      color: var(--text); font-size: 1rem; font-family: var(--font);
-      padding: 12px 14px; outline: none;
-      transition: border-color .15s;
-    }
-    .field input:focus, .field textarea:focus { border-color: var(--accent); }
-    .field textarea { min-height: 80px; resize: vertical; }
-    .field input::placeholder, .field textarea::placeholder { color: var(--muted); }
-
-    /* ── QR Scanner ── */
-    #qr-reader {
-      width: 100%; border-radius: var(--radius-sm);
-      overflow: hidden; background: #000;
-      display: none;
-    }
-    #qr-reader video { width: 100%; display: block; }
-    /* hide html5-qrcode default UI clutter */
-    #qr-reader__dashboard_section_csr button { display: none !important; }
-    #qr-reader__status_span { display: none !important; }
-    #qr-reader select {
-      background: var(--surface); color: var(--text);
-      border: 1px solid var(--border); border-radius: var(--radius-sm);
-      padding: 6px 10px; margin: 8px 0; width: 100%;
-    }
-
-    .barcode-result {
-      display: flex; align-items: center; gap: 10px;
-      background: var(--surface); border: 1px solid var(--success);
-      border-radius: var(--radius-sm); padding: 12px 14px;
-      margin-top: 10px;
-    }
-    .barcode-result .icon { font-size: 1.4rem; }
-    .barcode-result .val { font-size: 1.1rem; font-weight: 700; color: var(--success); flex: 1; word-break: break-all; }
-
-    /* ── Photo & OCR ── */
-    #photo-preview {
-      width: 100%; border-radius: var(--radius-sm);
-      display: none; margin-bottom: 10px;
-      max-height: 240px; object-fit: contain;
-      background: #000;
-    }
-    .ocr-overlay {
-      position: relative;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); padding: 10px;
-      margin-top: 6px;
-    }
-    .ocr-progress {
-      display: none; font-size: .85rem; color: var(--muted);
-      text-align: center; padding: 10px 0;
-    }
-    .ocr-progress .bar {
-      height: 4px; background: var(--border); border-radius: 99px;
-      margin: 8px 0; overflow: hidden;
-    }
-    .ocr-progress .bar-fill {
-      height: 100%; background: var(--accent2);
-      border-radius: 99px;
-      transition: width .3s;
-      width: 0%;
-    }
-
-    /* ── Status / Toast ── */
-    #toast {
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 99px; padding: 12px 22px;
-      font-size: .9rem; font-weight: 600;
-      box-shadow: var(--shadow);
-      transition: transform .3s cubic-bezier(.34,1.56,.64,1);
-      z-index: 999; white-space: nowrap;
-      pointer-events: none;
-    }
-    #toast.show { transform: translateX(-50%) translateY(0); }
-    #toast.ok { border-color: var(--success); color: var(--success); }
-    #toast.err { border-color: var(--danger); color: var(--danger); }
-    #toast.inf { border-color: var(--accent); color: var(--accent); }
-
-    /* ── Login screen ── */
-    #login-screen {
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      min-height: 100dvh; gap: 20px; padding: 32px 24px;
-      background: var(--bg);
-    }
-    .login-logo { font-size: 3rem; margin-bottom: 8px; }
-    .login-title { font-size: 1.6rem; font-weight: 800; text-align: center; }
-    .login-sub { color: var(--muted); text-align: center; font-size: .95rem; max-width: 300px; }
-    #login-screen .card { width: 100%; max-width: 360px; }
-
-    /* ── Sections ── */
-    .hidden { display: none !important; }
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .section-sep { height: 1px; background: var(--border); margin: 2px 0; }
-
-    /* ── Sending overlay ── */
-    #sending-overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.7);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 16px; z-index: 9999;
-    }
-    #sending-overlay .spinner {
-      width: 48px; height: 48px;
-      border: 4px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin .8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── Config warning ── */
-    .config-warn {
-      background: #2e1a00; border: 1px solid var(--warn);
-      border-radius: var(--radius-sm); padding: 12px 14px;
-      font-size: .85rem; color: var(--warn); margin-bottom: 12px;
-    }
+    :root { --bg:#f3f1eb; --surface:#f7f5f0; --surface-soft:#ebe7de; --text:#2f2f2f; --text-2:#6a685f; --border:rgba(47,47,47,.08); --accent:#111; --font:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Helvetica Neue',sans-serif; }
+    *{box-sizing:border-box;margin:0;padding:0} html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font)} body{-webkit-font-smoothing:antialiased}
+    button,input,textarea,select{font:inherit} .hidden{display:none!important} .disabled-layer{pointer-events:none;opacity:.6}
+    #send-bar{position:sticky;top:0;z-index:50;background:#111;color:#fff;padding:10px 16px;text-align:center;font-size:14px;display:none}
+    #login-screen{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px}.login-card{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:28px 24px}
+    .login-title{font-size:29px;font-weight:800;line-height:1.05;color:#3f3f3f;margin-bottom:18px}.btn-google{width:100%;border:1px solid #111;background:#111;color:#fff;border-radius:18px;padding:14px 16px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:8px}.btn-google img{width:20px;height:20px}.login-hint{margin-top:12px;font-size:13px;color:var(--text-2);line-height:1.35}
+    #app-screen,#history-screen{min-height:100dvh;padding-bottom:110px}.app-wrap,.history-wrap{max-width:760px;margin:0 auto;padding:16px}
+    .topbar{position:sticky;top:0;z-index:20;background:rgba(243,241,235,.96);backdrop-filter:blur(8px);border-bottom:1px solid rgba(47,47,47,.06)}.topbar-inner{max-width:760px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:10px}.brand{flex:1;min-width:0}.brand-title{font-size:18px;font-weight:800;color:#3f3f3f}.brand-sub{font-size:12px;color:var(--text-2);margin-top:2px}
+    .icon-btn{width:42px;height:42px;border-radius:14px;border:1px solid var(--border);background:var(--surface);color:var(--text);display:inline-flex;align-items:center;justify-content:center;font-size:18px}.user-chip{padding:6px 8px;border-radius:14px;background:var(--surface);border:1px solid var(--border);color:var(--text-2);font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .card{background:var(--surface);border-radius:24px;padding:16px;margin-bottom:12px;border:1px solid rgba(47,47,47,.05)}.section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;color:var(--text);font-weight:800;font-size:16px}.section-left{display:flex;align-items:center;gap:10px}.section-icon{width:24px;height:24px;border-radius:8px;background:var(--surface-soft);display:inline-flex;align-items:center;justify-content:center;font-size:14px}
+    .placeholder{min-height:160px;background:var(--surface-soft);border:1px dashed rgba(47,47,47,.10);border-radius:20px;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:var(--text-2)}.placeholder strong{color:var(--text);font-size:18px}.muted{color:var(--text-2)}
+    .inline-input,.text-input,.text-area{width:100%;background:var(--surface-soft);border:1px solid rgba(47,47,47,.06);border-radius:18px;padding:14px 16px;color:var(--text);outline:none}.inline-input:focus,.text-input:focus,.text-area:focus{border-color:rgba(17,17,17,.18);box-shadow:0 0 0 3px rgba(17,17,17,.05)}.text-area{min-height:112px;resize:vertical}.field-label{font-size:13px;color:var(--text-2);margin-bottom:8px;display:block}
+    #reader{width:100%;overflow:hidden;border-radius:18px;background:#1f2223;display:none;margin-bottom:10px;border:1px solid rgba(0,0,0,.04)}.qty-row{display:grid;grid-template-columns:1fr 56px 56px;gap:10px}.qty-btn{border:1px solid rgba(47,47,47,.06);background:var(--surface-soft);border-radius:18px;color:var(--text);font-size:28px;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+    .thumb-wrap{margin-top:12px}.photo-stage{position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(47,47,47,.06);background:#fff}.thumb-img{width:100%;display:block}.ocr-overlay{position:absolute;inset:0}.ocr-word{position:absolute;border:1px solid rgba(17,17,17,.18);background:rgba(255,255,255,.18);color:transparent;border-radius:4px;cursor:pointer}.ocr-word:hover,.ocr-word.active{background:rgba(17,17,17,.22);border-color:#111}.ocr-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.tool-btn{border:1px solid rgba(47,47,47,.06);background:var(--surface-soft);border-radius:16px;color:var(--text);padding:11px 14px}.tool-btn.dark{background:#111;color:#fff;border-color:#111}
+    .fab{position:fixed;right:22px;bottom:22px;width:74px;height:74px;border-radius:50%;border:0;background:#111;color:#fff;z-index:30;font-size:30px;display:inline-flex;align-items:center;justify-content:center}.toast-wrap{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);z-index:40;width:calc(100% - 32px);max-width:420px}.toast{display:none;background:rgba(20,20,20,.95);color:#fff;border-radius:16px;padding:14px 16px;text-align:center;font-size:14px}
+    .history-head{display:flex;gap:10px;align-items:center;margin-bottom:12px;position:sticky;top:0;background:rgba(243,241,235,.98);padding:10px 0 12px;z-index:5}.history-title{flex:1;font-size:24px;font-weight:800;color:#3f3f3f}.history-list{display:flex;flex-direction:column;gap:10px}.history-item{background:var(--surface);border:1px solid rgba(47,47,47,.05);border-radius:20px;padding:14px}.history-code{font-size:15px;font-weight:800;word-break:break-all}.history-meta{margin-top:8px;display:grid;gap:4px;color:var(--text-2);font-size:13px}.history-actions{margin-top:12px;display:flex;gap:8px}.mini-btn{border:1px solid rgba(47,47,47,.06);background:var(--surface-soft);color:var(--text);border-radius:14px;padding:10px 12px;font-size:13px}.mini-btn.danger{color:#9b2e24;background:#fff4f2;border-color:rgba(194,58,43,.12)}.empty-history{background:var(--surface);border:1px dashed rgba(47,47,47,.10);border-radius:20px;padding:28px 18px;color:var(--text-2);text-align:center}
   </style>
 </head>
 <body>
-
-<!-- ════════════════════════════════════
-     ⚙️  НАСТРОЙКИ — ЗАМЕНИТЕ ЗДЕСЬ
-     ════════════════════════════════════ -->
+  <div id="send-bar">Отправляю...</div>
+  <div id="login-screen"><div class="login-card"><div class="login-title">Учет продаж по ШК</div><button class="btn-google" id="google-signin-btn" onclick="signIn()"><img src="https://developers.google.com/identity/images/g-logo.png" alt="Google">Войти через Google</button><div class="login-hint">Вход нужен для отправки данных в Google Таблицу и фиксации пользователя.</div></div></div>
+  <div id="app-screen" class="hidden"><div class="topbar"><div class="topbar-inner"><div class="brand"><div class="brand-title">Учет продаж по ШК</div><div class="brand-sub">Заполнение и отправка в Google Таблицу</div></div><div id="user-chip" class="user-chip"></div><button class="icon-btn" onclick="openHistory()" aria-label="История">🕘</button></div></div>
+    <div class="app-wrap" id="form-wrap">
+      <div class="card"><div class="section-head"><div class="section-left"><span class="section-icon">#</span><span>Штрихкод</span></div></div><div id="reader"></div><div id="barcode-placeholder" class="placeholder" onclick="startScan()" style="cursor:pointer;"><div><strong>Нет сканированных штрихкодов</strong><div class="muted" style="margin-top:8px;">Нажмите, чтобы включить сканирование или введите штрихкод вручную ниже</div></div></div><div style="margin-top:12px;"><input id="manual-barcode-input" class="inline-input" type="text" placeholder="Введите штрихкод"></div></div>
+      <div class="card"><div class="section-head"><div class="section-left"><span class="section-icon">🖼</span><span>Изображение</span></div></div><div id="photo-placeholder" class="placeholder" onclick="takePhoto()" style="cursor:pointer;"><div><strong>Нет снятых изображений</strong><div class="muted" style="margin-top:8px;">Нажмите, чтобы сделать фото</div></div></div><input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoFile(event)"><div id="photo-preview" class="thumb-wrap hidden"><div class="photo-stage"><img id="photo-img" class="thumb-img" alt="Фото товара"><div id="ocr-overlay" class="ocr-overlay"></div></div><div class="ocr-toolbar"><button class="tool-btn" onclick="runOcrOverlay()">Распознать текст на фото</button><button class="tool-btn" onclick="clearSelectedWords()">Очистить выбор</button><button class="tool-btn dark" onclick="appendSelectedWords()">Добавить выбранное в текст</button></div><div class="muted" style="margin-top:10px;font-size:13px;">После распознавания тапайте по словам на фото, чтобы собрать нужный текст как в Telegram.</div></div><div style="margin-top:14px;"><label class="field-label" for="ocr-text">Текст с фото</label><textarea id="ocr-text" class="text-area" placeholder="Распознанный текст появится здесь"></textarea></div></div>
+      <div class="card"><div class="section-head"><div class="section-left"><span class="section-icon">₽</span><span>Цена</span></div></div><input id="field-price" class="text-input" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Введите цену" required></div>
+      <div class="card"><div class="section-head"><div class="section-left"><input id="field-transfer" type="checkbox"><span>Перевод</span></div></div><div class="muted">Пометить запись как перевод</div></div>
+      <div class="card"><div class="section-head"><div class="section-left"><span class="section-icon">1</span><span>Количество</span></div></div><div class="qty-row"><input id="field-qty" class="text-input" type="number" inputmode="numeric" min="1" step="1" value="1"><button class="qty-btn" onclick="changeQty(-1)" aria-label="Уменьшить">−</button><button class="qty-btn" onclick="changeQty(1)" aria-label="Увеличить">+</button></div></div>
+      <div class="card"><div class="section-head"><div class="section-left"><span class="section-icon">👤</span><span>Имя</span></div></div><input id="field-scanner" class="text-input" type="text" placeholder="Кто сканировал"></div>
+      <div class="card"><div class="section-head"><div class="section-left"><span class="section-icon">✎</span><span>Комментарий</span></div></div><textarea id="field-comment" class="text-area" placeholder="Комментарий"></textarea></div>
+    </div><button class="fab" id="submit-btn" onclick="submitForm()" aria-label="Отправить">➤</button></div>
+  <div id="history-screen" class="hidden"><div class="history-wrap"><div class="history-head"><button class="icon-btn" onclick="closeHistory()" aria-label="Назад">←</button><div class="history-title">История</div><button class="icon-btn" onclick="exportHistoryCsv()" aria-label="CSV">⤓</button><button class="icon-btn" onclick="clearHistory()" aria-label="Очистить всё">🗑</button></div><div id="history-count" class="muted" style="margin-bottom:10px;"></div><div id="history-list" class="history-list"></div></div></div>
+  <div class="toast-wrap"><div id="toast" class="toast"></div></div>
 <script>
-  // 1) Google OAuth Client ID из Google Cloud Console
-  const GOOGLE_CLIENT_ID = "147988593400-75qo13gh77ikliq5vumdp8k2li2cb8gn.apps.googleusercontent.com";
-
-  // 2) URL вашего задеплоенного Google Apps Script Web App
-  const APPS_SCRIPT_URL  = "https://script.google.com/macros/s/AKfycbwWJtwlYXJoOnF6rCFe2qoryNN77IzgysRLEMdXEoTFZX3v7QVnyuZyDGZgT-Gyf9jU/exec";
-
-  // Проверяем, заполнены ли настройки
-  const CONFIG_OK = !GOOGLE_CLIENT_ID.includes("ВСТАВЬТЕ") && !APPS_SCRIPT_URL.includes("ВСТАВЬТЕ");
-</script>
-<!-- ════════════════════════════════════ -->
-
-<div id="app">
-
-  <!-- ── LOGIN SCREEN ── -->
-  <div id="login-screen">
-    <div class="login-logo">📦</div>
-    <div class="login-title">Сканер товаров</div>
-    <div class="login-sub">Сканируйте штрихкоды, делайте фото и отправляйте данные в Google Sheets</div>
-
-    <div class="card" id="login-card">
-      <div id="config-warning" class="config-warn hidden">
-        ⚠️ Сначала заполните GOOGLE_CLIENT_ID и APPS_SCRIPT_URL в коде (см. раздел ⚙️ НАСТРОЙКИ)
-      </div>
-      <button class="btn btn-google" id="google-signin-btn" onclick="signIn()">
-        <img src="https://developers.google.com/identity/images/g-logo.png" alt="G">
-        Войти через Google
-      </button>
-      <p style="font-size:.78rem;color:var(--muted);margin-top:12px;text-align:center;">
-        Ваш email будет сохранён в таблице для идентификации записей
-      </p>
-    </div>
-  </div>
-
-  <!-- ── MAIN APP ── -->
-  <div id="main-app" class="hidden">
-    <div class="top-bar">
-      <h1>📦 Сканер</h1>
-      <div class="user-chip">
-        <img id="user-avatar" src="" alt="" />
-        <span id="user-email-chip"></span>
-      </div>
-    </div>
-
-    <div class="content">
-
-      <!-- Предупреждение о настройках -->
-      <div id="main-config-warn" class="config-warn hidden">
-        ⚠️ Apps Script URL не настроен — отправка в таблицу недоступна
-      </div>
-
-      <!-- ─── BARCODE ─── -->
-      <div class="card">
-        <div class="card-title"><span class="dot" style="background:var(--accent)"></span>Штрихкод</div>
-
-        <div id="qr-reader"></div>
-
-        <div class="two-col" style="margin-bottom:10px;">
-          <button class="btn btn-primary" id="btn-scan-start" onclick="startScan()">
-            📷 Сканировать
-          </button>
-          <button class="btn btn-secondary" id="btn-scan-stop" onclick="stopScan()" style="display:none;">
-            ⏹ Стоп
-          </button>
-          <button class="btn btn-secondary btn-sm" onclick="manualBarcode()" style="grid-column:2">
-            ✏️ Вручную
-          </button>
-        </div>
-
-        <div id="barcode-result" class="barcode-result hidden">
-          <span class="icon">✅</span>
-          <span class="val" id="barcode-val">—</span>
-          <button onclick="clearBarcode()" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;">✕</button>
-        </div>
-      </div>
-
-      <!-- ─── PHOTO + OCR ─── -->
-      <div class="card">
-        <div class="card-title"><span class="dot" style="background:var(--accent2)"></span>Фото и распознавание текста</div>
-
-        <img id="photo-preview" alt="Предпросмотр фото" />
-
-        <div class="two-col" style="margin-bottom:10px;">
-          <button class="btn btn-primary" onclick="takePhoto()">📸 Фото</button>
-          <button class="btn btn-secondary" onclick="uploadPhoto()">🖼 Галерея</button>
-        </div>
-        <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoFile(event)">
-        <input type="file" id="gallery-input" accept="image/*" style="display:none" onchange="handlePhotoFile(event)">
-
-        <div class="ocr-progress" id="ocr-progress">
-          <div>Распознаю текст… <span id="ocr-pct">0%</span></div>
-          <div class="bar"><div class="bar-fill" id="ocr-bar"></div></div>
-        </div>
-
-        <div class="ocr-overlay" id="ocr-box" style="display:none;">
-          <div class="field" style="margin-bottom:0">
-            <label>Распознанный текст (можно редактировать)</label>
-            <textarea id="ocr-text" placeholder="Текст появится здесь после распознавания..."></textarea>
-          </div>
-        </div>
-      </div>
-
-      <!-- ─── FORM ─── -->
-      <div class="card">
-        <div class="card-title"><span class="dot" style="background:var(--success)"></span>Данные записи</div>
-
-        <div class="field">
-          <label>Кто сканировал</label>
-          <input type="text" id="field-scanner" placeholder="Введите имя или должность">
-        </div>
-        <div class="two-col">
-          <div class="field">
-            <label>Цена</label>
-            <input type="number" id="field-price" placeholder="0.00" inputmode="decimal" step="0.01">
-          </div>
-          <div class="field">
-            <label>Количество</label>
-            <input type="number" id="field-qty" placeholder="1" inputmode="numeric" min="1" value="1">
-          </div>
-        </div>
-        <div class="field">
-          <label>Комментарий</label>
-          <textarea id="field-comment" placeholder="Необязательно..."></textarea>
-        </div>
-      </div>
-
-      <!-- ─── SEND ─── -->
-      <button class="btn btn-success" onclick="sendToSheets()">
-        📤 Отправить в Google Sheets
-      </button>
-
-      <button class="btn btn-secondary btn-sm" onclick="clearAll()">
-        🗑 Очистить форму
-      </button>
-
-      <div style="height:24px;"></div>
-    </div><!-- /content -->
-  </div><!-- /main-app -->
-
-</div><!-- /app -->
-
-<!-- Sending overlay -->
-<div id="sending-overlay" class="hidden">
-  <div class="spinner"></div>
-  <div style="color:var(--text);font-weight:600;">Отправка данных…</div>
-</div>
-
-<!-- Toast -->
-<div id="toast"></div>
-
-<script>
-// ══════════════════════════════════════════════════════════
-//  STATE
-// ══════════════════════════════════════════════════════════
-let userEmail    = "";
-let userName     = "";
-let userPicture  = "";
-let barcodeValue = "";
-let photoDataUrl = "";
-let html5QrCode  = null;
-let scanning     = false;
-
-// ══════════════════════════════════════════════════════════
-//  INIT
-// ══════════════════════════════════════════════════════════
-window.addEventListener("DOMContentLoaded", () => {
-  if (!CONFIG_OK) {
-    document.getElementById("config-warning").classList.remove("hidden");
-  }
-
-  // Восстановить сессию из localStorage
-  const saved = localStorage.getItem("scanner_user");
-  if (saved) {
-    const u = JSON.parse(saved);
-    loginUser(u.email, u.name, u.picture);
-  }
-});
-
-// ══════════════════════════════════════════════════════════
-//  AUTH
-// ══════════════════════════════════════════════════════════
-function signIn() {
-  if (!CONFIG_OK) {
-    toast("Сначала заполните настройки в коде!", "err");
-    return;
-  }
-  if (!window.google) {
-    toast("Google SDK ещё загружается, подождите...", "inf");
-    return;
-  }
-  google.accounts.id.initialize({
-    client_id: GOOGLE_CLIENT_ID,
-    callback: handleGoogleCallback,
-    use_fedcm_for_prompt: true
-  });
-  google.accounts.id.prompt((notification) => {
-    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-      // Fallback: renderButton
-      renderGoogleButton();
-    }
-  });
-}
-
-function renderGoogleButton() {
-  const btn = document.getElementById("google-signin-btn");
-  btn.style.display = "none";
-  const wrap = document.createElement("div");
-  wrap.id = "g_id_onload";
-  google.accounts.id.renderButton(wrap, {
-    theme: "outline", size: "large", width: "100%", text: "signin_with"
-  });
-  btn.parentNode.insertBefore(wrap, btn.nextSibling);
-}
-
-function handleGoogleCallback(response) {
-  // Decode JWT без библиотеки
-  const parts = response.credential.split(".");
-  const payload = JSON.parse(atob(parts[1].replace(/-/g,"+").replace(/_/g,"/")));
-  loginUser(payload.email, payload.name, payload.picture);
-  localStorage.setItem("scanner_user", JSON.stringify({
-    email: payload.email, name: payload.name, picture: payload.picture
-  }));
-}
-
-function loginUser(email, name, picture) {
-  userEmail   = email;
-  userName    = name;
-  userPicture = picture;
-
-  document.getElementById("login-screen").classList.add("hidden");
-  document.getElementById("main-app").classList.remove("hidden");
-  document.getElementById("user-email-chip").textContent = email;
-  document.getElementById("user-avatar").src = picture || "";
-  document.getElementById("field-scanner").value = name || "";
-
-  if (!CONFIG_OK) {
-    document.getElementById("main-config-warn").classList.remove("hidden");
-  }
-  toast("Добро пожаловать, " + (name || email) + "!", "ok");
-}
-
-// ══════════════════════════════════════════════════════════
-//  BARCODE
-// ══════════════════════════════════════════════════════════
-async function startScan() {
-  document.getElementById("qr-reader").style.display = "block";
-  document.getElementById("btn-scan-start").style.display = "none";
-  document.getElementById("btn-scan-stop").style.display = "block";
-  scanning = true;
-
-  html5QrCode = new Html5Qrcode("qr-reader");
-
-  try {
-    const cameras = await Html5Qrcode.getCameras();
-    // Предпочитаем заднюю камеру
-    const cam = cameras.find(c => /back|rear|env/i.test(c.label)) || cameras[cameras.length - 1];
-    await html5QrCode.start(
-      cam ? cam.id : { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 240, height: 140 }, aspectRatio: 1.5 },
-      (decodedText) => {
-        setBarcodeValue(decodedText);
-        stopScan();
-        vibrate();
-      },
-      () => {}
-    );
-  } catch (e) {
-    // Fallback: facingMode
-    try {
-      await html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 240, height: 140 } },
-        (decodedText) => { setBarcodeValue(decodedText); stopScan(); vibrate(); },
-        () => {}
-      );
-    } catch (e2) {
-      toast("Камера недоступна: " + e2, "err");
-      stopScan();
-    }
-  }
-}
-
-async function stopScan() {
-  scanning = false;
-  document.getElementById("btn-scan-start").style.display = "block";
-  document.getElementById("btn-scan-stop").style.display = "none";
-  if (html5QrCode) {
-    try { await html5QrCode.stop(); } catch(_) {}
-    html5QrCode = null;
-  }
-  document.getElementById("qr-reader").style.display = "none";
-}
-
-function setBarcodeValue(val) {
-  barcodeValue = val;
-  document.getElementById("barcode-val").textContent = val;
-  document.getElementById("barcode-result").classList.remove("hidden");
-}
-
-function clearBarcode() {
-  barcodeValue = "";
-  document.getElementById("barcode-result").classList.add("hidden");
-}
-
-function manualBarcode() {
-  const val = prompt("Введите штрихкод вручную:");
-  if (val && val.trim()) setBarcodeValue(val.trim());
-}
-
-// ══════════════════════════════════════════════════════════
-//  PHOTO + OCR
-// ══════════════════════════════════════════════════════════
-function takePhoto() {
-  document.getElementById("photo-input").click();
-}
-function uploadPhoto() {
-  document.getElementById("gallery-input").click();
-}
-
-function handlePhotoFile(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    photoDataUrl = e.target.result;
-    const img = document.getElementById("photo-preview");
-    img.src = photoDataUrl;
-    img.style.display = "block";
-    runOCR(photoDataUrl);
-  };
-  reader.readAsDataURL(file);
-  event.target.value = ""; // reset so same file can be re-selected
-}
-
-async function runOCR(dataUrl) {
-  const progress = document.getElementById("ocr-progress");
-  const bar      = document.getElementById("ocr-bar");
-  const pct      = document.getElementById("ocr-pct");
-  const box      = document.getElementById("ocr-box");
-  const area     = document.getElementById("ocr-text");
-
-  progress.style.display = "block";
-  box.style.display = "none";
-  area.value = "";
-
-  try {
-    const worker = await Tesseract.createWorker("rus+eng", 1, {
-      logger: (m) => {
-        if (m.status === "recognizing text") {
-          const p = Math.round((m.progress || 0) * 100);
-          bar.style.width = p + "%";
-          pct.textContent = p + "%";
-        }
-      }
-    });
-
-    const result = await worker.recognize(dataUrl);
-    await worker.terminate();
-
-    progress.style.display = "none";
-    area.value = result.data.text.trim();
-    box.style.display = "block";
-
-    if (result.data.text.trim()) {
-      toast("Текст распознан ✓", "ok");
-    } else {
-      toast("Текст не найден на фото", "inf");
-    }
-  } catch (e) {
-    progress.style.display = "none";
-    box.style.display = "block";
-    toast("Ошибка OCR: " + e.message, "err");
-  }
-}
-
-// ══════════════════════════════════════════════════════════
-//  SEND TO SHEETS
-// ══════════════════════════════════════════════════════════
-async function sendToSheets() {
-  if (!CONFIG_OK || APPS_SCRIPT_URL.includes("ВСТАВЬТЕ")) {
-    toast("Настройте APPS_SCRIPT_URL в коде!", "err");
-    return;
-  }
-  if (!userEmail) { toast("Сначала войдите через Google", "err"); return; }
-
-  const overlay = document.getElementById("sending-overlay");
-  overlay.classList.remove("hidden");
-
-  const now = new Date();
-  const datetime = now.toLocaleString("ru-RU", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-    hour: "2-digit", minute: "2-digit", second: "2-digit"
-  });
-
-  const payload = {
-    datetime:  datetime,
-    email:     userEmail,
-    scanner:   document.getElementById("field-scanner").value || userName,
-    barcode:   barcodeValue,
-    price:     document.getElementById("field-price").value,
-    qty:       document.getElementById("field-qty").value,
-    ocrText:   document.getElementById("ocr-text").value,
-    comment:   document.getElementById("field-comment").value
-  };
-
-  try {
-    const resp = await fetch(APPS_SCRIPT_URL, {
-      method:  "POST",
-      mode:    "no-cors",    // Apps Script требует no-cors
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(payload)
-    });
-    overlay.classList.add("hidden");
-    toast("Данные отправлены в таблицу ✓", "ok");
-    vibrate([100, 50, 100]);
-  } catch (e) {
-    overlay.classList.add("hidden");
-    toast("Ошибка отправки: " + e.message, "err");
-  }
-}
-
-// ══════════════════════════════════════════════════════════
-//  UTILS
-// ══════════════════════════════════════════════════════════
-function clearAll() {
-  if (!confirm("Очистить всю форму?")) return;
-  clearBarcode();
-  barcodeValue = "";
-  photoDataUrl = "";
-  document.getElementById("photo-preview").style.display = "none";
-  document.getElementById("photo-preview").src = "";
-  document.getElementById("ocr-box").style.display = "none";
-  document.getElementById("ocr-text").value = "";
-  document.getElementById("field-price").value = "";
-  document.getElementById("field-qty").value = "1";
-  document.getElementById("field-comment").value = "";
-  toast("Форма очищена", "inf");
-}
-
-let toastTimer = null;
-function toast(msg, type = "inf") {
-  const el = document.getElementById("toast");
-  el.textContent = msg;
-  el.className = "show " + type;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.className = ""; }, 3000);
-}
-
-function vibrate(pattern = [60]) {
-  if (navigator.vibrate) navigator.vibrate(pattern);
-}
+const GOOGLE_CLIENT_ID = "147988593400-75qo13gh77ikliq5vumdp8k2li2cb8gn.apps.googleusercontent.com";
+const APPS_SCRIPT_URL  = "https://script.google.com/macros/s/AKfycbwWJtwlYXJoOnF6rCFe2qoryNN77IzgysRLEMdXEoTFZX3v7QVnyuZyDGZgT-Gyf9jU/exec";
+const HISTORY_KEY = "scanner_history_v6"; const HISTORY_LIMIT = 1000;
+let userEmail="", userName="", html5Qr=null, scanning=false, photoDataUrl="", isSending=false, ocrWords=[];
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.style.display='block';clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>el.style.display='none',2400)}
+function playDing(){const ctx=new(window.AudioContext||window.webkitAudioContext)();const o=ctx.createOscillator();const g=ctx.createGain();o.type='triangle';o.frequency.setValueAtTime(880,ctx.currentTime);o.frequency.exponentialRampToValueAtTime(1320,ctx.currentTime+0.14);g.gain.setValueAtTime(0.0001,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.12,ctx.currentTime+0.02);g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.32);o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+0.34)}
+function escapeHtml(v){return String(v||'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]))}
+function setSending(state){isSending=state;document.getElementById('send-bar').style.display=state?'block':'none';document.getElementById('form-wrap').classList.toggle('disabled-layer',state);document.getElementById('submit-btn').disabled=state}
+function saveHistory(item){const list=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');list.unshift(item);if(list.length>HISTORY_LIMIT)list.length=HISTORY_LIMIT;localStorage.setItem(HISTORY_KEY,JSON.stringify(list))}
+function getHistory(){return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]')}
+function removeHistory(index){const list=getHistory();list.splice(index,1);localStorage.setItem(HISTORY_KEY,JSON.stringify(list));renderHistory()}
+function clearHistory(){if(!confirm('Удалить всю историю?'))return;localStorage.removeItem(HISTORY_KEY);renderHistory();toast('История очищена')}
+function exportHistoryCsv(){const list=getHistory();if(!list.length){toast('История пуста');return}const headers=['Штрихкод','Текст с фото','Цена','Перевод','Количество','Дата и время','Email','Кто сканировал','Комментарий'];const rows=list.map(x=>[x.barcode||'',x.ocrText||'',x.price||'',x.transfer||'',x.qty||'',x.datetime||'',x.email||'',x.scanner||'',x.comment||'']);const csv=[headers,...rows].map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='scanner-history.csv';a.click();URL.revokeObjectURL(a.href)}
+function renderHistory(){const list=getHistory();document.getElementById('history-count').textContent=`Записей: ${list.length} / ${HISTORY_LIMIT}`;const box=document.getElementById('history-list');if(!list.length){box.innerHTML='<div class="empty-history">История пока пустая.</div>';return}box.innerHTML=list.map((item,i)=>`<div class="history-item"><div class="history-code">${escapeHtml(item.barcode||'Без штрихкода')}</div><div class="history-meta"><div><strong>Текст:</strong> ${escapeHtml(item.ocrText||'—')}</div><div><strong>Цена:</strong> ${escapeHtml(item.price||'—')}</div><div><strong>Перевод:</strong> ${escapeHtml(item.transfer||'Нет')}</div><div><strong>Количество:</strong> ${escapeHtml(item.qty||'1')}</div><div><strong>Дата:</strong> ${escapeHtml(item.datetime||'—')}</div><div><strong>Email:</strong> ${escapeHtml(item.email||'—')}</div><div><strong>Кто:</strong> ${escapeHtml(item.scanner||'—')}</div><div><strong>Комментарий:</strong> ${escapeHtml(item.comment||'—')}</div></div><div class="history-actions"><button class="mini-btn danger" onclick="removeHistory(${i})">Удалить</button></div></div>`).join('')}
+function openHistory(){renderHistory();document.getElementById('app-screen').classList.add('hidden');document.getElementById('history-screen').classList.remove('hidden')}
+function closeHistory(){document.getElementById('history-screen').classList.add('hidden');document.getElementById('app-screen').classList.remove('hidden')}
+function signIn(){if(!window.google){toast('Google SDK загружается…');return}google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:handleGoogleCallback});google.accounts.id.prompt((n)=>{if(n.isNotDisplayed()||n.isSkippedMoment())renderGoogleButton()})}
+function renderGoogleButton(){const btn=document.getElementById('google-signin-btn');const wrap=document.createElement('div');btn.replaceWith(wrap);google.accounts.id.renderButton(wrap,{theme:'outline',size:'large',width:320})}
+function parseJwt(token){const base64Url=token.split('.')[1];const base64=base64Url.replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(decodeURIComponent(atob(base64).split('').map(c=>'%' + ('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')))}
+function handleGoogleCallback(response){const data=parseJwt(response.credential);userEmail=data.email||'';userName=data.name||'';document.getElementById('user-chip').textContent=userEmail||'Без email';document.getElementById('field-scanner').value=userName||'';document.getElementById('login-screen').classList.add('hidden');document.getElementById('app-screen').classList.remove('hidden')}
+async function startScan(){if(scanning||isSending)return;try{if(!html5Qr)html5Qr=new Html5Qrcode('reader');document.getElementById('reader').style.display='block';scanning=true;await html5Qr.start({facingMode:'environment'},{fps:10,qrbox:220},(decodedText)=>{document.getElementById('manual-barcode-input').value=decodedText;stopScan();toast('Штрихкод считан')},()=>{})}catch(e){scanning=false;document.getElementById('reader').style.display='none';toast('Не удалось запустить сканирование')}}
+async function stopScan(){try{if(html5Qr&&scanning)await html5Qr.stop()}catch(e){}scanning=false;document.getElementById('reader').style.display='none'}
+function takePhoto(){if(isSending)return;document.getElementById('photo-input').click()}
+function handlePhotoFile(event){const file=event.target.files&&event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{photoDataUrl=reader.result;document.getElementById('photo-img').src=photoDataUrl;document.getElementById('photo-preview').classList.remove('hidden');document.getElementById('photo-placeholder').classList.add('hidden');clearOverlay();toast('Фото добавлено')};reader.readAsDataURL(file)}
+function clearOverlay(){ocrWords=[];document.getElementById('ocr-overlay').innerHTML=''}
+function clearSelectedWords(){ocrWords.forEach(w=>w.selected=false);paintOverlay();toast('Выбор очищен')}
+function appendSelectedWords(){const selected=ocrWords.filter(w=>w.selected).map(w=>w.text).join(' ').trim();if(!selected){toast('Сначала выберите слова на фото');return}const area=document.getElementById('ocr-text');area.value=(area.value?area.value+' ':'')+selected;toast('Выбранный текст добавлен')}
+function paintOverlay(){const overlay=document.getElementById('ocr-overlay');const img=document.getElementById('photo-img');overlay.innerHTML='';if(!img.clientWidth||!img.naturalWidth)return;const scaleX=img.clientWidth/img.naturalWidth;const scaleY=img.clientHeight/img.naturalHeight;ocrWords.forEach((w,idx)=>{const div=document.createElement('div');div.className='ocr-word'+(w.selected?' active':'');div.style.left=(w.bbox.x0*scaleX)+'px';div.style.top=(w.bbox.y0*scaleY)+'px';div.style.width=Math.max(14,(w.bbox.x1-w.bbox.x0)*scaleX)+'px';div.style.height=Math.max(14,(w.bbox.y1-w.bbox.y0)*scaleY)+'px';div.title=w.text;div.onclick=()=>{ocrWords[idx].selected=!ocrWords[idx].selected;paintOverlay()};overlay.appendChild(div)})}
+async function runOcrOverlay(){if(!photoDataUrl){toast('Сначала добавьте фото');return}clearOverlay();const area=document.getElementById('ocr-text');area.value='Распознавание...';try{const result=await Tesseract.recognize(photoDataUrl,'rus+eng');const words=((result.data&&result.data.words)||[]).filter(w=>w.text&&w.text.trim());ocrWords=words.map(w=>({text:w.text.trim(),bbox:w.bbox,selected:false}));area.value=(result.data&&result.data.text?result.data.text.trim():'')||'';paintOverlay();toast('Текст распознан, можно выбирать слова на фото')}catch(e){area.value='';clearOverlay();toast('Не удалось распознать текст')}}
+window.addEventListener('resize',paintOverlay)
+function changeQty(diff){if(isSending)return;const el=document.getElementById('field-qty');const current=Math.max(1,parseInt(el.value||'1',10));el.value=Math.max(1,current+diff)}
+function collectPayload(){const now=new Date();return{barcode:document.getElementById('manual-barcode-input').value.trim()||'',ocrText:document.getElementById('ocr-text').value.trim(),price:document.getElementById('field-price').value.trim(),transfer:document.getElementById('field-transfer').checked?'Да':'Нет',qty:document.getElementById('field-qty').value.trim()||'1',datetime:now.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),email:userEmail,scanner:document.getElementById('field-scanner').value.trim()||userName,comment:document.getElementById('field-comment').value.trim()}}
+async function submitForm(){if(isSending)return;if(!userEmail){toast('Войдите через Google');return}const payload=collectPayload();if(!payload.price){toast('Цена обязательна');return}setSending(true);try{const res=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});const text=await res.text();if(!res.ok)throw new Error(text||'Ошибка отправки');saveHistory(payload);resetForm();playDing();toast('Отправлено')}catch(e){saveHistory(payload);toast('Сохранено локально, проверьте Apps Script')}finally{setSending(false)}}
+function resetForm(){document.getElementById('manual-barcode-input').value='';document.getElementById('field-price').value='';document.getElementById('field-transfer').checked=false;document.getElementById('field-qty').value='1';document.getElementById('ocr-text').value='';document.getElementById('field-comment').value='';document.getElementById('photo-img').src='';document.getElementById('photo-preview').classList.add('hidden');document.getElementById('photo-placeholder').classList.remove('hidden');document.getElementById('photo-input').value='';clearOverlay();stopScan()}
 </script>
 </body>
 </html>
