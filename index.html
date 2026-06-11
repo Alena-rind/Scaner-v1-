@@ -257,4 +257,463 @@
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .config-warn 
+    .config-warn {
+      background: #2e1a00; border: 1px solid var(--warn);
+      border-radius: var(--radius-sm); padding: 12px 14px;
+      font-size: .85rem; color: var(--warn); margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<script>
+  const GOOGLE_CLIENT_ID = "147988593400-75qo13gh77ikliq5vumdp8k2li2cb8gn.apps.googleusercontent.com";
+  const APPS_SCRIPT_URL  = "https://script.google.com/macros/s/AKfycbwmDq3XZBDyMmuDn1bCjPcTzCAJ2aLAbURkuKnQ-9_9FySHixyB6CXVnFRHkU3FyHiBuQ/exec";
+  const CONFIG_OK = !GOOGLE_CLIENT_ID.includes("ВСТАВЬТЕ") && !APPS_SCRIPT_URL.includes("ВСТАВЬТЕ");
+</script>
+
+<div id="app">
+  <div id="login-screen">
+    <div class="login-logo">📦</div>
+    <div class="login-title">Сканер товаров</div>
+    <div class="login-sub">Сканируйте штрихкоды, делайте фото и отправляйте данные в Google Sheets</div>
+
+    <div class="card" id="login-card">
+      <div id="config-warning" class="config-warn hidden">
+        ⚠️ Сначала заполните GOOGLE_CLIENT_ID и APPS_SCRIPT_URL в коде
+      </div>
+      <button class="btn btn-google" id="google-signin-btn" onclick="signIn()">
+        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google">
+        Войти через Google
+      </button>
+      <p style="font-size:.78rem;color:var(--muted);margin-top:12px;text-align:center;">
+        Email будет сохранён в таблице
+      </p>
+    </div>
+  </div>
+
+  <div id="main-app" class="hidden">
+    <div class="top-bar">
+      <h1>📦 Сканер</h1>
+      <div class="user-chip">
+        <img id="user-avatar" src="" alt="">
+        <span id="user-email-chip"></span>
+      </div>
+    </div>
+
+    <div class="content">
+      <div id="main-config-warn" class="config-warn hidden">
+        ⚠️ Apps Script URL не настроен
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:var(--accent)"></span>Штрихкод</div>
+
+        <div id="qr-reader"></div>
+
+        <div class="two-col" style="margin-bottom:10px;">
+          <button class="btn btn-primary" id="btn-scan-start" onclick="startScan()">📷 Сканировать</button>
+          <button class="btn btn-secondary" id="btn-scan-stop" onclick="stopScan()" style="display:none;">⏹ Стоп</button>
+          <button class="btn btn-secondary btn-sm" onclick="manualBarcode()" style="grid-column:2">✏️ Вручную</button>
+        </div>
+
+        <div id="barcode-result" class="barcode-result hidden">
+          <span class="icon">✅</span>
+          <span class="val" id="barcode-val">—</span>
+          <button onclick="clearBarcode()" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;">✕</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:var(--accent2)"></span>Фото и OCR</div>
+
+        <img id="photo-preview" alt="Предпросмотр фото" />
+
+        <div class="two-col" style="margin-bottom:10px;">
+          <button class="btn btn-primary" onclick="takePhoto()">📸 Фото</button>
+          <button class="btn btn-secondary" onclick="uploadPhoto()">🖼 Галерея</button>
+        </div>
+
+        <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoFile(event)">
+        <input type="file" id="gallery-input" accept="image/*" style="display:none" onchange="handlePhotoFile(event)">
+
+        <div class="ocr-progress" id="ocr-progress">
+          <div>Распознаю текст… <span id="ocr-pct">0%</span></div>
+          <div class="bar"><div class="bar-fill" id="ocr-bar"></div></div>
+        </div>
+
+        <div class="ocr-overlay" id="ocr-box" style="display:none;">
+          <div class="field" style="margin-bottom:0">
+            <label>Распознанный текст</label>
+            <textarea id="ocr-text" placeholder="Текст появится здесь после распознавания..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:var(--success)"></span>Данные записи</div>
+
+        <div class="field">
+          <label>Кто сканировал</label>
+          <input type="text" id="field-scanner" placeholder="Введите имя">
+        </div>
+
+        <div class="two-col">
+          <div class="field">
+            <label>Цена</label>
+            <input type="number" id="field-price" placeholder="0.00" inputmode="decimal" step="0.01">
+          </div>
+          <div class="field">
+            <label>Количество</label>
+            <input type="number" id="field-qty" placeholder="1" inputmode="numeric" min="1" value="1">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Комментарий</label>
+          <textarea id="field-comment" placeholder="Необязательно"></textarea>
+        </div>
+      </div>
+
+      <button class="btn btn-success" onclick="sendToSheets()">📤 Отправить в Google Sheets</button>
+      <button class="btn btn-secondary btn-sm" onclick="clearAll()">🗑 Очистить форму</button>
+
+      <div style="height:24px;"></div>
+    </div>
+  </div>
+</div>
+
+<div id="sending-overlay" class="hidden">
+  <div class="spinner"></div>
+  <div style="color:var(--text);font-weight:600;">Отправка данных…</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let userEmail = "";
+let userName = "";
+let userPicture = "";
+let barcodeValue = "";
+let photoDataUrl = "";
+let html5QrCode = null;
+let scanning = false;
+
+window.addEventListener("DOMContentLoaded", () => {
+  if (!CONFIG_OK) {
+    document.getElementById("config-warning").classList.remove("hidden");
+  }
+
+  try {
+    const saved = localStorage.getItem("scanner_user");
+    if (saved) {
+      const u = JSON.parse(saved);
+      loginUser(u.email, u.name, u.picture);
+    }
+  } catch (_) {}
+});
+
+function signIn() {
+  if (!CONFIG_OK) {
+    toast("Сначала заполните настройки!", "err");
+    return;
+  }
+
+  if (!window.google) {
+    toast("Google SDK ещё загружается...", "inf");
+    return;
+  }
+
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleCallback,
+    auto_select: false
+  });
+
+  google.accounts.id.prompt((notification) => {
+    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+      renderGoogleButton();
+    }
+  });
+}
+
+function renderGoogleButton() {
+  const oldBtn = document.getElementById("google-signin-btn");
+  oldBtn.style.display = "none";
+
+  const wrap = document.createElement("div");
+  wrap.id = "g_id_signin_wrap";
+  oldBtn.parentNode.insertBefore(wrap, oldBtn.nextSibling);
+
+  google.accounts.id.renderButton(wrap, {
+    theme: "outline",
+    size: "large",
+    width: 300,
+    text: "signin_with"
+  });
+}
+
+function handleGoogleCallback(response) {
+  const parts = response.credential.split(".");
+  const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+  loginUser(payload.email, payload.name, payload.picture);
+
+  try {
+    localStorage.setItem("scanner_user", JSON.stringify({
+      email: payload.email,
+      name: payload.name,
+      picture: payload.picture
+    }));
+  } catch (_) {}
+}
+
+function loginUser(email, name, picture) {
+  userEmail = email || "";
+  userName = name || "";
+  userPicture = picture || "";
+
+  document.getElementById("login-screen").classList.add("hidden");
+  document.getElementById("main-app").classList.remove("hidden");
+  document.getElementById("user-email-chip").textContent = userEmail;
+  document.getElementById("user-avatar").src = userPicture || "";
+  document.getElementById("field-scanner").value = userName || "";
+
+  if (!CONFIG_OK) {
+    document.getElementById("main-config-warn").classList.remove("hidden");
+  }
+
+  toast("Вход выполнен", "ok");
+}
+
+async function startScan() {
+  document.getElementById("qr-reader").style.display = "block";
+  document.getElementById("btn-scan-start").style.display = "none";
+  document.getElementById("btn-scan-stop").style.display = "block";
+  scanning = true;
+
+  html5QrCode = new Html5Qrcode("qr-reader");
+
+  try {
+    const cameras = await Html5Qrcode.getCameras();
+    const cam = cameras.find(c => /back|rear|env/i.test(c.label)) || cameras[cameras.length - 1];
+
+    await html5QrCode.start(
+      cam ? cam.id : { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 240, height: 140 }, aspectRatio: 1.5 },
+      (decodedText) => {
+        setBarcodeValue(decodedText);
+        stopScan();
+        vibrate();
+      },
+      () => {}
+    );
+  } catch (e) {
+    try {
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 240, height: 140 } },
+        (decodedText) => {
+          setBarcodeValue(decodedText);
+          stopScan();
+          vibrate();
+        },
+        () => {}
+      );
+    } catch (e2) {
+      toast("Камера недоступна", "err");
+      stopScan();
+    }
+  }
+}
+
+async function stopScan() {
+  scanning = false;
+  document.getElementById("btn-scan-start").style.display = "block";
+  document.getElementById("btn-scan-stop").style.display = "none";
+
+  if (html5QrCode) {
+    try { await html5QrCode.stop(); } catch (_) {}
+    try { await html5QrCode.clear(); } catch (_) {}
+    html5QrCode = null;
+  }
+
+  document.getElementById("qr-reader").style.display = "none";
+}
+
+function setBarcodeValue(val) {
+  barcodeValue = val;
+  document.getElementById("barcode-val").textContent = val;
+  document.getElementById("barcode-result").classList.remove("hidden");
+}
+
+function clearBarcode() {
+  barcodeValue = "";
+  document.getElementById("barcode-result").classList.add("hidden");
+}
+
+function manualBarcode() {
+  const val = prompt("Введите штрихкод вручную:");
+  if (val && val.trim()) setBarcodeValue(val.trim());
+}
+
+function takePhoto() {
+  document.getElementById("photo-input").click();
+}
+
+function uploadPhoto() {
+  document.getElementById("gallery-input").click();
+}
+
+function handlePhotoFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    photoDataUrl = e.target.result;
+    const img = document.getElementById("photo-preview");
+    img.src = photoDataUrl;
+    img.style.display = "block";
+    runOCR(photoDataUrl);
+  };
+
+  reader.readAsDataURL(file);
+  event.target.value = "";
+}
+
+async function runOCR(dataUrl) {
+  const progress = document.getElementById("ocr-progress");
+  const bar = document.getElementById("ocr-bar");
+  const pct = document.getElementById("ocr-pct");
+  const box = document.getElementById("ocr-box");
+  const area = document.getElementById("ocr-text");
+
+  progress.style.display = "block";
+  box.style.display = "none";
+  area.value = "";
+  bar.style.width = "0%";
+  pct.textContent = "0%";
+
+  try {
+    const worker = await Tesseract.createWorker("rus+eng", 1, {
+      logger: (m) => {
+        if (m.status === "recognizing text") {
+          const p = Math.round((m.progress || 0) * 100);
+          bar.style.width = p + "%";
+          pct.textContent = p + "%";
+        }
+      }
+    });
+
+    const result = await worker.recognize(dataUrl);
+    await worker.terminate();
+
+    progress.style.display = "none";
+    area.value = (result.data.text || "").trim();
+    box.style.display = "block";
+
+    if (area.value) {
+      toast("Текст распознан", "ok");
+    } else {
+      toast("Текст на фото не найден", "inf");
+    }
+  } catch (e) {
+    progress.style.display = "none";
+    box.style.display = "block";
+    toast("Ошибка OCR", "err");
+  }
+}
+
+async function sendToSheets() {
+  if (!CONFIG_OK || APPS_SCRIPT_URL.includes("ВСТАВЬТЕ")) {
+    toast("Настройте APPS_SCRIPT_URL", "err");
+    return;
+  }
+
+  if (!userEmail) {
+    toast("Сначала войдите через Google", "err");
+    return;
+  }
+
+  const overlay = document.getElementById("sending-overlay");
+  overlay.classList.remove("hidden");
+
+  const now = new Date();
+  const datetime = now.toLocaleString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+
+  const payload = {
+    datetime: datetime,
+    email: userEmail,
+    scanner: document.getElementById("field-scanner").value || userName,
+    barcode: barcodeValue,
+    price: document.getElementById("field-price").value,
+    qty: document.getElementById("field-qty").value,
+    ocrText: document.getElementById("ocr-text").value,
+    comment: document.getElementById("field-comment").value
+  };
+
+  if (!payload.barcode) {
+    overlay.classList.add("hidden");
+    toast("Сначала отсканируйте штрихкод", "err");
+    return;
+  }
+
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    overlay.classList.add("hidden");
+    toast("Запрос отправлен", "ok");
+    vibrate([100, 50, 100]);
+  } catch (e) {
+    overlay.classList.add("hidden");
+    toast("Ошибка отправки: " + e.message, "err");
+  }
+}
+
+function clearAll() {
+  if (!confirm("Очистить всю форму?")) return;
+
+  clearBarcode();
+  photoDataUrl = "";
+
+  document.getElementById("photo-preview").style.display = "none";
+  document.getElementById("photo-preview").src = "";
+  document.getElementById("ocr-box").style.display = "none";
+  document.getElementById("ocr-text").value = "";
+  document.getElementById("field-price").value = "";
+  document.getElementById("field-qty").value = "1";
+  document.getElementById("field-comment").value = "";
+
+  toast("Форма очищена", "inf");
+}
+
+let toastTimer = null;
+function toast(msg, type = "inf") {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "show " + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    el.className = "";
+  }, 3000);
+}
+
+function vibrate(pattern = [60]) {
+  if (navigator.vibrate) navigator.vibrate(pattern);
+}
+</script>
+</body>
+</html>
